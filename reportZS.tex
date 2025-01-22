@@ -1,0 +1,116 @@
+\documentclass[11pt]{article}
+\usepackage{algorithms}
+\usepackage{amsmath}
+\usepackage{amsfonts} 
+\usepackage{listings}
+\usepackage{geometry}
+\usepackage{mathtools}
+\usepackage[slovak,shorthands=off]{babel}
+\usepackage{graphicx}
+\usepackage{float}
+\usepackage{amsthm}
+\usepackage{algpseudocodex}
+\usepackage[utf8]{inputenc} % Input encoding
+\usepackage[T1]{fontenc}    % Font encoding for special characters
+\geometry{margin=2cm}
+\graphicspath{ {./images/} }
+\pagenumbering{gobble}
+\setlength{\parskip}{0.75\baselineskip}
+\setlength{\parindent}{0pt}
+
+\theoremstyle{definition}
+\newtheorem{lemma}{Lema}
+\begin{document}
+
+\newtheorem{definition}{Definícia}
+
+\theoremstyle{definition}
+\newtheorem{theorem}{Tvrdenie}
+
+\title{RP}
+\begin{center}
+    {\LARGE Ročníkový projekt zimný semester report}\\[1em]
+    {\large Alex Diko  \\ \texttt{diko3@uniba.sk}}\\[1em]
+\end{center}
+
+\paragraph{Pojmy}
+
+\textit{Graf} je dvojica $G = (V,E)$, kde $V,E$ sú množiny také, že $E \subseteq V\times V$
+a $V \cap E = \emptyset$. Prvky $V$ sa nazývajú \textit{vrcholy} grafu $G$ a prvky $E$ jeho \textit{hrany}.
+Množinu hrán grafu $G$ označujeme ako $E(G)$. Vrchol 
+$v$ je \textit{incidentný} s hranou $e$ ak $v\in e$. \textit{Stupeň vrcholu} je počet
+hrán s ním incidentných. Ak všetky vrcholy grafu
+majú stupeň $k$, graf sa nazýva sa \textit{$k$-regulárny}. \textit{Cesta} je neprázdny graf $P = (V,E)$,
+kde $V = \{x_0, x_1, \ldots, x_k\}$ a $E = \{x_0x_1, x_1x_2, \ldots, x_{k-1}x_k\}$,
+pričom všetky $x_i$ sú rôzne. Túto cestu označíme $x_0x_1\ldots x_k$. Ak $P = x_0\ldots x_{k-1}$ je cesta, potom
+graf $C := P + x_{k-1}x_0$ sa nazýva \textit{kružnica}. \textit{Dĺžka} kružnice je počet jej hrán. Graf
+$ G'(V',E')$ je \textit{podgrafom} grafu $G$ ak $V' \subseteq V$ a $E' \subseteq E$.
+\textit{Rozklad} množiny $E(G)$ je množina $R = \{R_1, \ldots, R_k\}$, kde $R_i$
+sú navzájom disjunktné a zjednotenie $\cup R$ všetkých množín $R_i \in R$ sa rovná $E(G)$.
+
+\textit{Kružnicovou dekompozíciou grafu} nazveme rozklad $E(G)$ na kružnice, ktoré nezdieľajú žiadnu
+hranu. Ak každá kružnica tohto rozkladu má párnu dĺžku nazveme tento rozklad \textit{párnym} (ďalej
+\textit{ECD} z anglického \textit{Even cycle decomposition}).
+Pre ECD grafu zafarbíme každú jeho kružnicu tak, aby kružnice so spoločným
+vrcholom nemali rovnakú farbu. Potom zjednotenie kružníc v každej farebnej triede 
+bude 2-regulárny podgraf pôvodného grafu. Ak najmenší počet farieb potrebných 
+na takéto zafarbenie je $m$ potom ECD rozklad má \textit{veľkosť} $m$.
+
+\paragraph{Implementácia}
+Do grafovej knižnice \textit{ba-graph} som naimplementoval backtracking (prehľadávanie 
+s návratom) algoritmus, ktorý nájde veľkosť ECD grafu. Pseudokód algoritmu je uvedený nižšie.
+
+\begin{algorithm}
+\begin{algorithmic}[1]
+    
+    \Function{SkúsZačaťNovúKružnicu}
+        \If{Všetky hrany sú priradené farebnej triede}
+            \State Zapamätaj si toto zafarbenie a porovnaj jeho veľkosť s doteraz najmenším
+        \Else
+            \State $h \gets$ Zober nejakú nezafarbenú hranu
+            \ForAll{$f \in$ Aktuálne farebné triedy}
+                \State Skús priradiť $h$ do $f$ a zapamätaj si, že $e$ bude v kružnici na párnej pozícii
+                \State SkúsPokračovaťVAktuálnejKružnici(e)
+            \EndFor
+
+            \State Skús priradiť $h$ do novej farebnej triedy a zapamätaj si, že $e$ bude v kružnici na párnej pozícii
+            \If{Počet farebných tried je väčší ako aktuálne najlepšie riešenie}
+            \State odmietni aktuálne riešenie
+            \State SkúsPokračovaťVAktuálnejKružnici($h$)
+            \EndIf
+        \EndIf
+
+    \EndFunction
+
+    \Function{SkúsPokračovaťVAktuálnejKružnici}{\textit{aktuálnaHrana}}
+        \LComment{Over či je aktuálnaHrana správne zafarbená. V korektnej ECD 
+        musia byť práve 2 susedné hrany v rovnakej farebnej triede a na pozíciach 
+        inej parity ako AktuálnaHrana}
+        \State $p \gets 0$ \Comment{Počet susedných hrán v rovnakej farebnej triede ale na pozíciach
+        rôznej parity}
+        \ForAll{$h \in$ hrany susedné s \textit{aktuálnaHrana}}
+        \If{$h$ je v rovnakej farebnej triede ako \textit{aktuálnaHrana}}
+            \If{$h$ je na pozícii rovnakej parity ako \textit{aktuálnaHrana}}
+            \State Odmietni aktuálnu kružnicu 
+            \Else
+            \State $p \gets p+1$
+            \EndIf
+        \EndIf
+        \EndFor
+        
+        \If{$p > 2$}
+        \State Odmietni aktuálnu kružnicu
+        \ElsIf{$p = 2$}
+        \State \Call{SkúsZačaťNovúKružnicu}{} \Comment{Bez sporu sa nám podarilo vytvoriť kružnicu párnej dĺžky}
+        \Else
+        \ForAll{$h \in$ hrany susedné s \textit{aktuálnaHrana}}
+            \State Skús priradiť $h$ do rovnakej farebnej triedy ako aktuálnaHrana ale na pozíciu inej parity
+            \Call{SkúsPokračovaťVAktuálnejKružnici}{$h$}
+        \EndFor
+        \EndIf
+        
+    \EndFunction
+\end{algorithmic}
+\end{algorithm}
+
+\end{document}
