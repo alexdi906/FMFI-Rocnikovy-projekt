@@ -3,16 +3,16 @@
 
 #include <vector>
 #include <map>
-#include <set>
 #include <algorithm>
 #include <climits>
 #include <utility>
-#include <operations/basic.hpp>
 
 #include "../operations/line_graph.hpp"
 #include "distance.hpp"
 #include "degree.hpp"
 #include "../algorithms/isomorphism/isomorphism.hpp"
+#include "../operations/basic.hpp"
+#include <random>
 
 namespace ba_graph
 {
@@ -31,22 +31,11 @@ class ECD
         {
             edgeToNumber  = line_graph_with_map(G).second;
             std::vector<Number> nums = LG.list(RP::all(), RT::n());
-
-
-            int max_num = max_number(LG).to_int()+1;
-            saturation.resize(max_num+1, std::vector<int>(max_num+1, 0));
-            saturDeg.resize(max_num+1);
-            coloring.resize(max_num+1, -1);
-
-            for(Number&n : nums)
-            {
-                // saturation[n] = {};
-                saturOrder.insert(std::make_pair(0, n));
-            }
-            uncolored.insert(nums.begin(), nums.end());
-
+            uncolored.insert(uncolored.end(), nums.begin(), nums.end());
+            random_order(uncolored);
             minSize = INT_MAX;
             hasEcd = false;
+            coloring.resize(max_number(LG).to_int()+1, -1);
 
             if (G.contains([](const Rotation& r)-> bool { return r.degree() & 1; }) || G.contains(RP::all(), IP::loop()) || (G.size()&1))
             {
@@ -54,27 +43,8 @@ class ECD
             }
 
             startCycle(0);
-            assert(uncolored.size() == nums.size());
-            for(int &i : coloring)
-            {
-                assert(i == -1);
-            }
-            // assert(coloring.size() == 0);
-            assert(saturOrder.size() == nums.size());
-            for(auto&i : saturation)
-            {
-                for(auto&j : i)
-                {
-
-                    assert(j == 0);
-                }
-            }
-
-            for(auto&i : saturDeg)
-            {
-                assert(i == 0);
-            }
             coloring = minColoring;
+            assert((int)uncolored.size() == LG.order());
         }
 
         //construct each ecd color class based on the minimal size edge coloring
@@ -94,6 +64,7 @@ class ECD
             for (auto&e : G.list(RP::all(), IP::primary(), IT::e()))
             {
                 Graph&g = subgraphs[coloring[edgeToNumber[e].to_int()]/2];
+
                 if(!g.contains(RP::v(e.v1())))
                 {
                     addV(g,e.v1(), G.find(RP::v(e.v1()))->n(),f);
@@ -118,64 +89,27 @@ class ECD
         const Graph LG; // for simplicity, we will be assigning vertices of a line graph to cycles
         int minSize; // minimum ecd size
         bool hasEcd;
-        // std::map<Number, int> minColoring; //to which color class does vertex belong, color class i consists of vertex colors 2*i, 2*i+1
-        // std::map<Number, int> coloring;
+        std::vector<int> minColoring; //to which color class does vertex belong, color class i consists of vertex colors 2*i, 2*i+1
         std::vector<int> coloring;
-        std::vector<int> minColoring;
-        std::vector<std::vector<int>> saturation;
-        std::vector<int> saturDeg;
-        // std::map<Number, std::set<int>> saturation;
-        std::set<std::pair<int, Number>> saturOrder;
-        std::vector<Number> order;
-
+        std::vector<Number> uncolored;
         std::map<Edge, Number> edgeToNumber; // conversion from line graph
-        std::set<Number> uncolored;
-
 
         //try to assign vertex to cycle of color class col/2
         void assignCol(Number vert, int col, Number startVert, int curSize)
         {
             coloring[vert.to_int()] = col;
-            uncolored.erase(vert);
-            saturOrder.erase(std::make_pair(saturDeg[vert.to_int()], vert));
-
-            order.push_back(vert);
-
-            std::vector<Number> changed;
-            std::set<Number> visited;
-            for(auto&I : LG[vert])
-            {
-                Number neigh = I.n2();
-                if(coloring[neigh.to_int()] == -1 && !saturation[neigh.to_int()][col])
-                {
-                    assert(!visited.contains(neigh));
-                    int cnt = saturDeg[neigh.to_int()];
-                    saturOrder.erase(std::make_pair(cnt, neigh));
-
-                    saturation[neigh.to_int()][col] = 1;
-                    saturDeg[neigh.to_int()]++;
-                    saturOrder.insert(std::make_pair(cnt+1, neigh));
-                    changed.push_back(neigh);
-                    visited.insert(neigh);
-                }
-            }
+            uncolored.erase(std::find(uncolored.begin(), uncolored.end(), vert));
             findCycle(vert, col, startVert, curSize);
 
-            order.pop_back();
-            coloring[vert.to_int()]=-1;
-            uncolored.insert(vert);
-            saturOrder.insert(std::make_pair(saturDeg[vert.to_int()], vert));
+            coloring[vert.to_int()] = -1;
+            uncolored.push_back(vert);
+        }
 
-            for(auto&n : changed)
-            {
-                int cnt = saturDeg[n.to_int()];
-                // int cnt = saturation[n].size();
-                saturOrder.erase(std::make_pair(cnt, n));
-                saturation[n.to_int()][col]--;
-                saturDeg[n.to_int()]--;
-
-                saturOrder.insert(std::make_pair(cnt-1, n));
-            }
+      void random_order(std::vector<Number>&vec)
+        {
+            std::random_device rd;
+            std::mt19937 gen(rd());
+            std::shuffle(vec.begin(), vec.end(), gen);
         }
 
         //find an even cycle beginning at startVert, using colors col, col+1 alternately
@@ -189,6 +123,7 @@ class ECD
             for(auto&I : LG[curVert])
             {
                 Number neigh = I.n2();
+
                 if(coloring[neigh.to_int()] == -1)
                 {
                     continue;
@@ -201,30 +136,29 @@ class ECD
                 if(coloring[neigh.to_int()] == othCol)
                 {
                     cntOthCol++;
-                    //exactly 2 of my neighbors have to be of different parity
                     if(cntOthCol > 2)
                     {
                         return;
                     }
+                    // exactly 2 of my neighbors have to be of different parity
+
                 }
             }
 
-            //if we returned to start (and we didn't just leave start) we have found an even cycle
             if(cntOthCol == 2)
             {
                 startCycle(curSize);
                 return;
             }
-                for(auto&I : LG[curVert])
+
+            for(auto&I : LG[curVert])
+            {
+                Number neigh = I.n2();
+                if(coloring[neigh.to_int()] == -1)
                 {
-                    Number neigh = I.n2();
-                    if(coloring[neigh.to_int()]==-1)
-                    {
-
-                        assignCol(neigh,othCol, startVert, curSize);
-                    }
+                    assignCol(neigh,othCol, startVert, curSize);
                 }
-
+            }
         }
 
         void startCycle(int curSize)
@@ -239,7 +173,7 @@ class ECD
                 return;
             }
 
-            Number startVert = prev(saturOrder.end())->second;
+            Number startVert = uncolored.back();
 
             //try to assign vertex to some existing color class
             for(int i = 0; i<curSize; ++i)
