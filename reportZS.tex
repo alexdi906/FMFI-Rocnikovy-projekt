@@ -1,52 +1,50 @@
 \documentclass[11pt]{article}
-\usepackage{algorithms}
 \usepackage{amsmath}
 \usepackage{amsfonts} 
 \usepackage{listings}
+\usepackage{algorithm}
 \usepackage{geometry}
 \usepackage{mathtools}
 \usepackage[slovak,shorthands=off]{babel}
 \usepackage{graphicx}
-\usepackage{float}
+\usepackage{floatpag}
 \usepackage{amsthm}
-\usepackage{algpseudocodex}
-\usepackage[utf8]{inputenc} % Input encoding
-\usepackage[T1]{fontenc}    % Font encoding for special characters
+\usepackage{tcolorbox}
+\usepackage[noEnd=false]{algpseudocodex}
+\usepackage[utf8]{inputenc} 
+\usepackage[T1]{fontenc}    
+\usepackage{csquotes}
+\usepackage{biblatex}
+\addbibresource{TexResources/references.bib}
 \geometry{margin=2cm}
-\graphicspath{ {./images/} }
 \pagenumbering{gobble}
 \setlength{\parskip}{0.75\baselineskip}
 \setlength{\parindent}{0pt}
 
-\theoremstyle{definition}
-\newtheorem{lemma}{Lema}
 \begin{document}
 
-\newtheorem{definition}{Definícia}
-
-\theoremstyle{definition}
-\newtheorem{theorem}{Tvrdenie}
 
 \title{RP}
 \begin{center}
-    {\LARGE Ročníkový projekt zimný semester report}\\[1em]
+    {\LARGE Report ročníkový projekt zimný semester 2024/2025}\\[1em]
     {\large Alex Diko  \\ \texttt{diko3@uniba.sk}}\\[1em]
 \end{center}
 
-\paragraph{Pojmy}
+\paragraph{Pojmy:}
 
 \textit{Graf} je dvojica $G = (V,E)$, kde $V,E$ sú množiny také, že $E \subseteq V\times V$
 a $V \cap E = \emptyset$. Prvky $V$ sa nazývajú \textit{vrcholy} grafu $G$ a prvky $E$ jeho \textit{hrany}.
 Množinu hrán grafu $G$ označujeme ako $E(G)$. Vrchol 
 $v$ je \textit{incidentný} s hranou $e$ ak $v\in e$. \textit{Stupeň vrcholu} je počet
-hrán s ním incidentných. Ak všetky vrcholy grafu
+hrán s ním incidentných. Dve hrany sú \textit{susedné} ak existuje vrchol, ktorý je 
+s obidvomi incidentný. Ak všetky vrcholy grafu
 majú stupeň $k$, graf sa nazýva sa \textit{$k$-regulárny}. \textit{Cesta} je neprázdny graf $P = (V,E)$,
 kde $V = \{x_0, x_1, \ldots, x_k\}$ a $E = \{x_0x_1, x_1x_2, \ldots, x_{k-1}x_k\}$,
 pričom všetky $x_i$ sú rôzne. Túto cestu označíme $x_0x_1\ldots x_k$. Ak $P = x_0\ldots x_{k-1}$ je cesta, potom
 graf $C := P + x_{k-1}x_0$ sa nazýva \textit{kružnica}. \textit{Dĺžka} kružnice je počet jej hrán. Graf
 $ G'(V',E')$ je \textit{podgrafom} grafu $G$ ak $V' \subseteq V$ a $E' \subseteq E$.
 \textit{Rozklad} množiny $E(G)$ je množina $R = \{R_1, \ldots, R_k\}$, kde $R_i$
-sú navzájom disjunktné a zjednotenie $\cup R$ všetkých množín $R_i \in R$ sa rovná $E(G)$.
+sú navzájom disjunktné a zjednotenie $\cup R$ všetkých množín $R_i \in R$ sa rovná $E(G)$. \cite{diestel2024graph}
 
 \textit{Kružnicovou dekompozíciou grafu} nazveme rozklad $E(G)$ na kružnice, ktoré nezdieľajú žiadnu
 hranu. Ak každá kružnica tohto rozkladu má párnu dĺžku nazveme tento rozklad \textit{párnym} (ďalej
@@ -54,30 +52,30 @@ hranu. Ak každá kružnica tohto rozkladu má párnu dĺžku nazveme tento rozk
 Pre ECD grafu zafarbíme každú jeho kružnicu tak, aby kružnice so spoločným
 vrcholom nemali rovnakú farbu. Potom zjednotenie kružníc v každej farebnej triede 
 bude 2-regulárny podgraf pôvodného grafu. Ak najmenší počet farieb potrebných 
-na takéto zafarbenie je $m$ potom ECD rozklad má \textit{veľkosť} $m$.
+na takéto zafarbenie je $m$ potom ECD rozklad má \textit{veľkosť} $m$. \cite{MALNEGRO2024113844}
 
-\paragraph{Implementácia}
-Do grafovej knižnice \textit{ba-graph} som naimplementoval backtracking (prehľadávanie 
+\paragraph{Implementácia:}
+Do grafovej knižnice \textit{ba-graph} som v jazyku c++ naimplementoval backtracking (prehľadávanie 
 s návratom) algoritmus, ktorý nájde veľkosť ECD grafu. Pseudokód algoritmu je uvedený nižšie.
-
-\begin{algorithm}
 \begin{algorithmic}[1]
     
-    \Function{SkúsZačaťNovúKružnicu}
-        \If{Všetky hrany sú priradené farebnej triede}
-            \State Zapamätaj si toto zafarbenie a porovnaj jeho veľkosť s doteraz najmenším
+    \Function{SkúsZačaťNovúKružnicu}{}
+        \If{všetky hrany sú priradené farebnej triede}
+            \State porovnaj veľkosť tohto ECD s doteraz najmenším, ak je menšie zapamätaj si farby hrán
+            \State \Return
         \Else
-            \State $h \gets$ Zober nejakú nezafarbenú hranu
-            \ForAll{$f \in$ Aktuálne farebné triedy}
-                \State Skús priradiť $h$ do $f$ a zapamätaj si, že $e$ bude v kružnici na párnej pozícii
-                \State SkúsPokračovaťVAktuálnejKružnici(e)
+            \State $h \gets$ zober nejakú nepriradenú hranu
+            \ForAll{$f \in$ aktuálne farebné triedy}
+                \State skús priradiť $h$ do $f$ a zapamätaj si, že $h$ bude v kružnici na párnej pozícii
+                \State \Call{SkúsPokračovaťVAktuálnejKružnici}{$h$}
             \EndFor
 
-            \State Skús priradiť $h$ do novej farebnej triedy a zapamätaj si, že $e$ bude v kružnici na párnej pozícii
-            \If{Počet farebných tried je väčší ako aktuálne najlepšie riešenie}
+            \State skús priradiť $h$ do novej farebnej triedy a zapamätaj si, že $h$ bude v kružnici na párnej pozícii
+            \If{počet farebných tried je väčší alebo rovný ako aktuálne najmenšie nájdené ECD}
             \State odmietni aktuálne riešenie
-            \State SkúsPokračovaťVAktuálnejKružnici($h$)
+            \State \Return
             \EndIf
+            \State \Call{SkúsPokračovaťVAktuálnejKružnici}{$h$}
         \EndIf
 
     \EndFunction
@@ -85,13 +83,14 @@ s návratom) algoritmus, ktorý nájde veľkosť ECD grafu. Pseudokód algoritmu
     \Function{SkúsPokračovaťVAktuálnejKružnici}{\textit{aktuálnaHrana}}
         \LComment{Over či je aktuálnaHrana správne zafarbená. V korektnej ECD 
         musia byť práve 2 susedné hrany v rovnakej farebnej triede a na pozíciach 
-        inej parity ako AktuálnaHrana}
+        inej parity ako aktuálnaHrana}
         \State $p \gets 0$ \Comment{Počet susedných hrán v rovnakej farebnej triede ale na pozíciach
         rôznej parity}
         \ForAll{$h \in$ hrany susedné s \textit{aktuálnaHrana}}
         \If{$h$ je v rovnakej farebnej triede ako \textit{aktuálnaHrana}}
             \If{$h$ je na pozícii rovnakej parity ako \textit{aktuálnaHrana}}
-            \State Odmietni aktuálnu kružnicu 
+            \State odmietni aktuálnu kružnicu 
+            \State \Return
             \Else
             \State $p \gets p+1$
             \EndIf
@@ -99,18 +98,31 @@ s návratom) algoritmus, ktorý nájde veľkosť ECD grafu. Pseudokód algoritmu
         \EndFor
         
         \If{$p > 2$}
-        \State Odmietni aktuálnu kružnicu
+        \State odmietni aktuálnu kružnicu
+        \State \Return
         \ElsIf{$p = 2$}
         \State \Call{SkúsZačaťNovúKružnicu}{} \Comment{Bez sporu sa nám podarilo vytvoriť kružnicu párnej dĺžky}
+        \State \Return
         \Else
-        \ForAll{$h \in$ hrany susedné s \textit{aktuálnaHrana}}
-            \State Skús priradiť $h$ do rovnakej farebnej triedy ako aktuálnaHrana ale na pozíciu inej parity
+        \ForAll{$h \in$ hrany susedné s \textit{aktuálnaHrana} a aktuálne nepriradené do farebnej triedy}
+            \State skús priradiť $h$ do rovnakej farebnej triedy ako aktuálnaHrana ale na pozíciu inej parity
             \Call{SkúsPokračovaťVAktuálnejKružnici}{$h$}
         \EndFor
         \EndIf
         
     \EndFunction
 \end{algorithmic}
-\end{algorithm}
 
+K algoritmu su urobené aj testy. Skúšal som viacero variant algoritmu (napríklad, že 
+iterujeme cez všetky možné veľkosti ECD a pre každú veľkosť skúšame nájsť jedno zafarbenie.
+Ak ho nájdeme, skončíme.), ale tento bol najrýchlejší. Výber hrany na riadku 6. je 
+nedeterministický. Skúšal som program, kde je poradie výberu hrán náhodne a čas rôzne spustenie
+programu na rovnakých vstupoch trvaly rôzne dlho. Teda to v akom poradí sú tam vyberané 
+hrany ovplyvňuje rýchlosť. Skúšal som heuristiku, kde sa vždy vyberie hrana, ktorá má najviac
+susedov priradených do nejakej farebnej triedy. Rýchlejší bol však variant, kde sa vrcholy vyberajú
+na základe poradia, v ktorom sú prehľadávané do šírky BFS algoritmom od prvej hrany, ktorá sa zafarbí.
+Varianty backtrackingu sa dajú pozrieť ako iné git vetvy. 
+
+\paragraph{Práca na letný semester:} ECD by sa malo dať nájsť pomocou SAT solvera.
+\printbibliography
 \end{document}

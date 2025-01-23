@@ -207,7 +207,7 @@ int main() {
     g = create_markstrom();
     assert(ecd_size(g) == -1);
 
-    const std::string kPath = "../../resources/graphs/4regular/";
+    const std::string kPath = "../ba-graph/resources/graphs/4regular/";
 
     // 4 regular graphs with chromatic index 4 have ecd = 2
     for (int o = 6; o <= 12; o += 2) {
@@ -227,7 +227,7 @@ int main() {
     // all these graphs have chi = 3 according to invariants/test_colouring
     for (int i = 4; i <= 8; i += 2) {
         std::string filename =
-            "../../resources/graphs/" + internal::stored_cubic_path(1, 3, i);
+            "../ba-graph/resources/graphs/" + internal::stored_cubic_path(1, 3, i);
         Factory f;
         auto graphs = read_graph6_file(filename, f, 0, 5).graphs();
         for (auto &G : graphs) {
