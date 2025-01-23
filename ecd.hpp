@@ -1,218 +1,291 @@
 #ifndef BA_GRAPH_INVARIANTS_ECD_HPP
 #define BA_GRAPH_INVARIANTS_ECD_HPP
 
+#include <vector>
+#include <map>
+#include <set>
 #include <algorithm>
 #include <climits>
-#include <map>
 #include <utility>
-#include <vector>
 
-#include "../basic_impl.hpp"
-#include "../algorithms/isomorphism/isomorphism.hpp"
-#include "../operations/basic.hpp"
 #include "../operations/line_graph.hpp"
-#include "degree.hpp"
 #include "distance.hpp"
+#include "degree.hpp"
+#include "../algorithms/isomorphism/isomorphism.hpp"
 
-namespace ba_graph {
-namespace internal {
-// Cycle decomposition, is a partition of E(g) into edge-disjoint cycles.
-// Cycle decomposition is called even, if each cycle of the cycle decomposition
-// is an even length cycle. For a cycle decomposition, we color each cycle of
-// the decomposition so that the cycles sharing a vertex do not receive the same
-// color. Thus, the union of cycles in each color class is a 2-regular subgraph.
-// If the minimum number of colors required for such a coloring is m, then the
-// cycle decomposition is said to be of size m.
-// Source: https://doi.org/10.1016/j.disc.2023.113844
-class Ecd {
- public:
-    explicit Ecd(const Graph &g) : g_(g), lg_(line_graph(g)), edge_to_number_(line_graph_with_map(g).second) {
-        std::vector<Number> nums = lg_.list(RP::all(), RT::n());
-        uncolored_.insert(nums.begin(), nums.end());
-        min_ecd_size_ = INT_MAX;
-        has_ecd_ = false;
-        coloring_.resize(max_number(lg_).to_int() + 1, -1);
+namespace ba_graph
+{
+namespace internal
+{
+//Source: https://doi.org/10.1016/j.disc.2023.113844
+//Cycle decomposition, is a partition of E(G) into edge-disjoint cycles.
+//Cycle decomposition is called even, if each cycle of the cycle decomposition is an even length cycle.
+//For a cycle decomposition, we color each cycle of the decomposition so that the cycles sharing a vertex do not receive
+//the same color. Thus, the union of cycles in each color class is a 2-regular subgraph. If the minimum number of colors
+//required for such a coloring is m, then the cycle decomposition is said to be of size m.
+class ECD
+{
+    public:
+        explicit ECD(const Graph&G): G(G), LG(std::move(line_graph(G)))
+        {
+            edgeToNumber  = line_graph_with_map(G).second;
+            nums = LG.list(RP::all(), RT::n());
+            uncolored.insert(nums.begin(), nums.end());
+            minSize = INT_MAX;
+            hasEcd = false;
 
-        if (g.contains([](const Rotation &r) -> bool { return r.degree() & 1; }) ||
-            g.contains(RP::all(), IP::loop()) || (g.size() & 1)) {
-            return;
-        }
-
-        StartCycle(0);
-    }
-
-    // construct each ecd color class based on the minimal ecd size edge coloring
-    std::vector<Graph> GetEcd(Factory &f = static_factory) {
-        if (!has_ecd_) {
-            return {};
-        }
-
-        std::vector<Graph> subgraphs;
-        for (int i = 0; i < GetSize(); ++i) {
-            subgraphs.emplace_back(createG(f));
-        }
-
-        for (auto &e : g_.list(RP::all(), IP::primary(), IT::e())) {
-            Graph &g = subgraphs[min_ecd_coloring_[edge_to_number_[e].to_int()] / 2];
-
-            if (!g.contains(RP::v(e.v1()))) {
-                addV(g, e.v1(), g_.find(RP::v(e.v1()))->n(), f);
-            }
-            if (!g.contains(RP::v(e.v2()))) {
-                addV(g, e.v2(), g_.find(RP::v(e.v2()))->n(), f);
-            }
-            addE(g, e, f);
-        }
-
-        return subgraphs;
-    }
-
-    int GetSize() const { return !has_ecd_ ? -1 : min_ecd_size_; }
-
- protected:
-    const Graph &g_;
-    const Graph lg_; // for simplicity, we will be assigning vertices of a line
-    // graph to cycles
-    int min_ecd_size_;
-    bool has_ecd_;
-    std::vector<int> coloring_; // to which color class does vertex belong, color class c
-    // consists of vertex colors 2*c, 2*c+1
-    std::vector<int> min_ecd_coloring_;
-    std::set<Number> uncolored_;
-    std::map<Edge, Number> edge_to_number_; // conversion from line graph
-
-    // try to assign vertex to a cycle of color class col/2
-    void AssignCol(Number vert, int col, int cur_size) {
-        coloring_[vert.to_int()] = col;
-        uncolored_.erase(vert);
-
-        FindCycle(vert, col, cur_size);
-
-        coloring_[vert.to_int()] = -1;
-        uncolored_.insert(vert);
-    }
-
-    // find an even cycle using colors col, col+1
-    // alternately. The cycle will belong to color class col/2
-    void FindCycle(Number cur_vert, int col, int cur_size) {
-        int oth_col = (col & 1 ? col - 1 : col + 1);
-        int cnt_oth_col = 0;
-
-        for (auto &i : lg_[cur_vert]) {
-            Number neigh = i.n2();
-
-            if (coloring_[neigh.to_int()] == -1) {
-                continue;
-            }
-            // in an even cycle both my neighbors have to be of different parity
-            if (coloring_[neigh.to_int()] == col) {
+            if (G.contains([](const Rotation& r)-> bool { return r.degree() & 1; }) || G.contains(RP::all(), IP::loop()) || (G.size()&1))
+            {
                 return;
             }
-            if (coloring_[neigh.to_int()] == oth_col) {
-                cnt_oth_col++;
-                // exactly 2 of my neighbors have to be of different parity
-                if (cnt_oth_col > 2) {
+
+            startCycle(0);
+            assert(uncolored.size() == nums.size());
+            assert(coloring.size() == 0);
+            coloring = minColoring;
+        }
+
+        //construct each ecd color class based on the minimal size edge coloring
+        std::vector<Graph> getECD(Factory&f = static_factory)
+        {
+            if(!hasEcd)
+            {
+                return {};
+            }
+
+            std::vector<Graph> subgraphs;
+            for(int i = 0; i<getSize(); ++i)
+            {
+                subgraphs.emplace_back(std::move(createG(f)));
+            }
+
+            for (auto&e : G.list(RP::all(), IP::primary(), IT::e()))
+            {
+                Graph&g = subgraphs[coloring[edgeToNumber[e]]/2];
+                if(!g.contains(RP::v(e.v1())))
+                {
+                    addV(g,e.v1(), G.find(RP::v(e.v1()))->n(),f);
+                }
+                if(!g.contains(RP::v(e.v2())))
+                {
+                    addV(g,e.v2(), G.find(RP::v(e.v2()))->n(),f);
+                }
+                addE(g,e,f);
+            }
+
+            return subgraphs;
+        }
+
+        int getSize() const
+        {
+            return !hasEcd?-1:minSize;
+        }
+
+    protected:
+        const Graph&G;
+        const Graph LG; // for simplicity, we will be assigning vertices of a line graph to cycles
+        int minSize; // minimum ecd size
+        bool hasEcd;
+        std::map<Number, int> minColoring; //to which color class does vertex belong, color class i consists of vertex colors 2*i, 2*i+1
+        std::map<Number, int> coloring;
+        //std::map<Number, std::set<int>> saturation;
+        std::set<Number> uncolored;
+        std::map<Edge, Number> edgeToNumber; // conversion from line graph
+        std::vector<Number> nums;
+
+
+        Number maxSaturVert(std::set<Number>&candidates)
+        {
+
+            std::map<Number, std::set<int>> saturation;
+
+            std::vector<Number> changed;
+            std::set<std::pair<int,Number>> order;
+
+            for(auto&n : candidates)
+            {
+                for(auto&I : LG[n])
+                {
+                    Number neigh = I.n2();
+
+                    if(!coloring.count(neigh))
+                    {
+                        continue;
+                    }
+                    int col = coloring[neigh];
+
+                    if(!saturation[n].contains(col))
+                    {
+                        saturation[n].insert(col);
+                        changed.push_back(neigh);
+                    }
+                }
+
+                order.insert(std::make_pair(saturation[n].size(), n));
+            }
+
+            return std::prev(order.end())->second;
+        }
+
+        //try to assign vertex to cycle of color class col/2
+        void assignCol(Number vert, int col, Number startVert, int curSize)
+        {
+            coloring[vert] = col;
+            uncolored.erase(vert);
+
+            findCycle(vert, col, startVert, curSize);
+
+            coloring.erase(vert);
+            uncolored.insert(vert);
+        }
+
+        //find an even cycle beginning at startVert, using colors col, col+1 alternately
+        //the cycle will belong to color class col/2
+           void findCycle(Number curVert, int col, Number startVert, int curSize)
+        {
+
+            int othCol = col/2*2 + ((col&1)^1);
+            int cntOthCol = 0;
+
+            for(auto&I : LG[curVert])
+            {
+                Number neigh = I.n2();
+                if(!coloring.contains(neigh))
+                {
+                    continue;
+                }
+                //in an even cycle both my neighbors have to be of different parity
+                if(coloring[neigh] == col)
+                {
                     return;
                 }
+                if(coloring[neigh] == othCol)
+                {
+                    cntOthCol++;
+                    //exactly 2 of my neighbors have to be of different parity
+                    if(cntOthCol > 2)
+                    {
+                        return;
+                    }
+                }
             }
-        }
-        // found a good even cycle
-        if (cnt_oth_col == 2) {
-            StartCycle(cur_size);
-            return;
-        }
 
-        for (auto &i : lg_[cur_vert]) {
-            Number neigh = i.n2();
-            if (coloring_[neigh.to_int()] == -1) {
-                AssignCol(neigh, oth_col, cur_size);
+            //if we returned to start (and we didn't just leave start) we have found an even cycle
+            if(cntOthCol == 2)
+            {
+                startCycle(curSize);
+                return;
             }
-        }
-    }
+                std::vector<std::pair<int, Number>> order;
 
-    void StartCycle(int cur_size) {
+                for(auto&I : LG[curVert])
+                {
+                    Number neigh = I.n2();
+                    if(!coloring.contains(neigh))
+                    {
 
-        if (uncolored_.empty()) {
+                        assignCol(neigh,othCol, startVert, curSize);
+                    }
 
-            min_ecd_size_ = cur_size;
-            min_ecd_coloring_ = coloring_;
-            has_ecd_ = true;
-            return;
-        }
-
-        Number start_vert = *uncolored_.begin();
-
-        // try to assign vertex to some existing color class
-        for (int c = 0; c < cur_size; ++c) {
-            AssignCol(start_vert, 2 * c, cur_size);
+                }
         }
 
-        // assign to a new color class
-        cur_size++;
-        if (cur_size >= min_ecd_size_) {
-            return;
+
+        void startCycle(int curSize)
+        {
+
+            // all vertices have been assigned to cycles
+            if(uncolored.empty())
+            {
+                minSize = curSize;
+                minColoring = coloring;
+                hasEcd = true;
+                return;
+            }
+
+            Number startVert = maxSaturVert(uncolored);
+
+            //try to assign vertex to some existing color class
+            for(int i = 0; i<curSize; ++i)
+            {
+                assignCol(startVert, 2*i, startVert,curSize);
+            }
+
+            //assign to a new color class
+            curSize++;
+            if(curSize >= minSize)
+            {
+                return;
+            }
+
+            assignCol(startVert, 2*(curSize-1), startVert, curSize);
         }
 
-        AssignCol(start_vert, 2 * (cur_size - 1), cur_size);
-    }
 };
-} // namespace internal
+}//namespace internal
 
-// minimal size of the Ecd, if there is none, return -1
-inline int ecd_size(const Graph &g) {
-    internal::Ecd ecd(g);
+// size of the ECD, if there is none, return -1
+inline int ecd_size(const Graph&G)
+{
+    internal::ECD ecd(G);
 
-    return ecd.GetSize();
+    return ecd.getSize();
 }
 
-// get the subgraphs which make up the ecd, length of the vector is number of
-// color classes. If no ecd, returns {}
-inline std::vector<Graph> ecd_subgraphs(const Graph &g,
-                                        Factory &f = static_factory) {
-    internal::Ecd ecd(g);
+// get the subgraphs which make up the ecd, length of the vector is number of color classes
+// if no ecd, returns {}
+inline std::vector<Graph> ecd_subgraphs(const Graph&G, Factory&f = static_factory)
+{
+    internal::ECD ecd(G);
 
-    return ecd.GetEcd(f);
+    return ecd.getECD(f);
 }
 
 // check whether we have an ecd decomposition of the given graph
-inline bool is_ecd(const Graph &g, std::vector<Graph> &subgraphs) {
-    std::vector<Vertex> vert_set;
-    std::vector<Edge> edge_set;
+inline bool is_ecd(const Graph&G, std::vector<Graph>&subgraphs)
+{
+    std::vector<Vertex> vertSet;
+    std::vector<Edge> edgeSet;
 
-    for (auto &sub_g : subgraphs) {
-        if (min_deg(sub_g) != 2 || max_deg(sub_g) != 2) {
+    for(auto&g : subgraphs)
+    {
+        if(min_deg(g) != 2 || max_deg(g) != 2)
+        {
             return false;
         }
-        auto comps = components(sub_g);
+        auto comps = components(g);
 
-        for (auto &comp : comps) {
-            if (comp.size() & 1) {
+        for(auto&comp : comps)
+        {
+            if(comp.size()&1)
+            {
                 return false;
             }
         }
 
-        std::vector<Vertex> sub_g_vert = sub_g.list(RP::all(), RT::v());
-        std::vector<Edge> sub_g_edg = sub_g.list(RP::all(), IP::primary(), IT::e());
+        std::vector<Vertex> verts = g.list(RP::all(),RT::v());
+        std::vector<Edge> edgs = g.list(RP::all(), IP::primary(), IT::e());
 
-        vert_set.insert(vert_set.begin(), sub_g_vert.begin(), sub_g_vert.end());
-        edge_set.insert(edge_set.end(), sub_g_edg.begin(), sub_g_edg.end());
+        vertSet.insert(vertSet.begin(), verts.begin(), verts.end());
+        edgeSet.insert(edgeSet.end(), edgs.begin(), edgs.end());
     }
 
-    std::sort(vert_set.begin(), vert_set.end());
-    std::sort(edge_set.begin(), edge_set.end());
+    std::sort(vertSet.begin(), vertSet.end());
+    std::sort(edgeSet.begin(), edgeSet.end());
 
-    if (std::adjacent_find(edge_set.begin(), edge_set.end()) != edge_set.end()) {
+    if(std::adjacent_find(edgeSet.begin(), edgeSet.end()) != edgeSet.end())
+    {
         return false;
     }
 
-    vert_set.erase(std::unique(vert_set.begin(), vert_set.end()), vert_set.end());
+    vertSet.erase(std::unique(vertSet.begin(), vertSet.end()),vertSet.end());
 
-    Graph g_2(createG());
-    addMultipleV(g_2, vert_set);
-    addMultipleE(g_2, edge_set);
+    Graph G2(createG());
+    addMultipleV(G2, vertSet);
+    addMultipleE(G2, edgeSet);
 
-    return are_isomorphic(g, g_2);
+    return are_isomorphic(G, G2);
 }
 
-} // namespace ba_graph
+}//namespace ba_graph
 #endif
