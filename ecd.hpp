@@ -7,12 +7,12 @@
 #include <utility>
 #include <vector>
 
-#include "../basic_impl.hpp"
-#include "../algorithms/isomorphism/isomorphism.hpp"
-#include "../operations/basic.hpp"
-#include "../operations/line_graph.hpp"
-#include "degree.hpp"
-#include "distance.hpp"
+#include <operations/line_graph.hpp>
+#include <invariants/distance.hpp>
+#include <invariants/degree.hpp>
+#include <algorithms/isomorphism/isomorphism.hpp>
+#include <operations/basic.hpp>
+
 
 namespace ba_graph {
 namespace internal {

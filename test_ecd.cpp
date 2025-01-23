@@ -1,9 +1,9 @@
 #include "implementation.h"
+#include "ecd.hpp"
 #include <algorithms/isomorphism/isomorphism.hpp>
 #include <cassert>
 #include <graphs.hpp>
 #include <invariants/connectivity.hpp>
-#include <invariants/ecd.hpp>
 #include <io/graph6.hpp>
 #include <io/print_nice.hpp>
 #include <iostream>
