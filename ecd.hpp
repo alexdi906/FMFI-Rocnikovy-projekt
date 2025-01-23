@@ -29,8 +29,15 @@ class ECD
         explicit ECD(const Graph&G): G(G), LG(std::move(line_graph(G)))
         {
             edgeToNumber  = line_graph_with_map(G).second;
-            nums = LG.list(RP::all(), RT::n());
+            std::vector<Number> nums = LG.list(RP::all(), RT::n());
+
+            for(Number&n : nums)
+            {
+                saturation[n] = {};
+                saturOrder.insert(std::make_pair(0, n));
+            }
             uncolored.insert(nums.begin(), nums.end());
+
             minSize = INT_MAX;
             hasEcd = false;
 
@@ -42,6 +49,11 @@ class ECD
             startCycle(0);
             assert(uncolored.size() == nums.size());
             assert(coloring.size() == 0);
+            assert(saturOrder.size() == nums.size());
+            for(auto&i : saturation)
+            {
+                assert(i.second.size() == 0);
+            }
             coloring = minColoring;
         }
 
@@ -88,62 +100,63 @@ class ECD
         bool hasEcd;
         std::map<Number, int> minColoring; //to which color class does vertex belong, color class i consists of vertex colors 2*i, 2*i+1
         std::map<Number, int> coloring;
-        //std::map<Number, std::set<int>> saturation;
-        std::set<Number> uncolored;
+        std::map<Number, std::multiset<int>> saturation;
+        std::set<std::pair<int, Number>> saturOrder;
+        std::vector<Number> order;
+
         std::map<Edge, Number> edgeToNumber; // conversion from line graph
-        std::vector<Number> nums;
+        std::set<Number> uncolored;
 
-
-        Number maxSaturVert(std::set<Number>&candidates)
-        {
-
-            std::map<Number, std::set<int>> saturation;
-
-            std::vector<Number> changed;
-            std::set<std::pair<int,Number>> order;
-
-            for(auto&n : candidates)
-            {
-                for(auto&I : LG[n])
-                {
-                    Number neigh = I.n2();
-
-                    if(!coloring.count(neigh))
-                    {
-                        continue;
-                    }
-                    int col = coloring[neigh];
-
-                    if(!saturation[n].contains(col))
-                    {
-                        saturation[n].insert(col);
-                        changed.push_back(neigh);
-                    }
-                }
-
-                order.insert(std::make_pair(saturation[n].size(), n));
-            }
-
-            return std::prev(order.end())->second;
-        }
 
         //try to assign vertex to cycle of color class col/2
         void assignCol(Number vert, int col, Number startVert, int curSize)
         {
             coloring[vert] = col;
             uncolored.erase(vert);
+            saturOrder.erase(std::make_pair(saturation[vert].size(), vert));
 
+            order.push_back(vert);
+
+            std::vector<Number> changed;
+            std::set<Number> visited;
+            for(auto&I : LG[vert])
+            {
+                Number neigh = I.n2();
+                if(uncolored.contains(neigh) && !visited.contains(neigh)) //&& !saturation[neigh].contains(col))
+                {
+                    // assert(!visited.contains(neigh));
+                    int cnt = saturation[neigh].size();
+                    saturOrder.erase(std::make_pair(cnt, neigh));
+
+                    saturation[neigh].insert(col);
+                    saturOrder.insert(std::make_pair(cnt+1, neigh));
+                    changed.push_back(neigh);
+                    visited.insert(neigh);
+                }
+            }
             findCycle(vert, col, startVert, curSize);
 
+            order.pop_back();
             coloring.erase(vert);
             uncolored.insert(vert);
+            saturOrder.insert(std::make_pair(saturation[vert].size(), vert));
+
+            for(auto&n : changed)
+            {
+                int cnt = saturation[n].size();
+                saturOrder.erase(std::make_pair(cnt, n));
+                saturation[n].erase(saturation[n].find(col));
+
+                saturOrder.insert(std::make_pair(cnt-1, n));
+            }
         }
 
         //find an even cycle beginning at startVert, using colors col, col+1 alternately
         //the cycle will belong to color class col/2
-           void findCycle(Number curVert, int col, Number startVert, int curSize)
+        void findCycle(Number curVert, int col, Number startVert, int curSize)
         {
 
+            bool neighStart = false; //is startVert by neighbor
             int othCol = col/2*2 + ((col&1)^1);
             int cntOthCol = 0;
 
@@ -168,6 +181,10 @@ class ECD
                         return;
                     }
                 }
+                if(neigh == startVert)
+                {
+                    neighStart = true;
+                }
             }
 
             //if we returned to start (and we didn't just leave start) we have found an even cycle
@@ -176,21 +193,28 @@ class ECD
                 startCycle(curSize);
                 return;
             }
+
                 std::vector<std::pair<int, Number>> order;
 
-                for(auto&I : LG[curVert])
+                for(auto&I:LG[curVert])
                 {
-                    Number neigh = I.n2();
+                    auto neigh = I.n2();
                     if(!coloring.contains(neigh))
                     {
-
-                        assignCol(neigh,othCol, startVert, curSize);
+                        order.emplace_back(saturation[neigh].size(), neigh);
                     }
-
                 }
+
+                std::sort(order.begin(), order.end(), std::greater<std::pair<int,Number>>());
+                //
+                for(auto&[size,neigh] : order)
+                {
+                    assignCol(neigh,othCol, startVert, curSize);
+                }
+
         }
 
-
+        // TODO choose starting vertex based on some heuristic
         void startCycle(int curSize)
         {
 
@@ -203,7 +227,7 @@ class ECD
                 return;
             }
 
-            Number startVert = maxSaturVert(uncolored);
+            Number startVert = prev(saturOrder.end())->second;
 
             //try to assign vertex to some existing color class
             for(int i = 0; i<curSize; ++i)
