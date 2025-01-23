@@ -35,10 +35,10 @@
 \textit{Graf} je dvojica $G = (V,E)$, kde $V,E$ sú množiny také, že $E \subseteq V\times V$
 a $V \cap E = \emptyset$. Prvky $V$ sa nazývajú \textit{vrcholy} grafu $G$ a prvky $E$ jeho \textit{hrany}.
 Množinu hrán grafu $G$ označujeme ako $E(G)$. Vrchol 
-$v$ je \textit{incidentný} s hranou $e$ ak $v\in e$. \textit{Stupeň vrcholu} je počet
-hrán s ním incidentných. Dve hrany sú \textit{susedné} ak existuje vrchol, ktorý je 
+$v$ je \textit{incidentný} s hranou $e$, ak $v\in e$. \textit{Stupeň vrcholu} je počet
+hrán s ním incidentných. Dve hrany sú \textit{susedné}, ak existuje vrchol, ktorý je 
 s obidvomi incidentný. Ak všetky vrcholy grafu
-majú stupeň $k$, graf sa nazýva sa \textit{$k$-regulárny}. \textit{Cesta} je neprázdny graf $P = (V,E)$,
+majú stupeň $k$, graf sa nazýva \textit{$k$-regulárny}. \textit{Cesta} je neprázdny graf $P = (V,E)$,
 kde $V = \{x_0, x_1, \ldots, x_k\}$ a $E = \{x_0x_1, x_1x_2, \ldots, x_{k-1}x_k\}$,
 pričom všetky $x_i$ sú rôzne. Túto cestu označíme $x_0x_1\ldots x_k$. Ak $P = x_0\ldots x_{k-1}$ je cesta, potom
 graf $C := P + x_{k-1}x_0$ sa nazýva \textit{kružnica}. \textit{Dĺžka} kružnice je počet jej hrán. Graf
@@ -47,7 +47,7 @@ $ G'(V',E')$ je \textit{podgrafom} grafu $G$ ak $V' \subseteq V$ a $E' \subseteq
 sú navzájom disjunktné a zjednotenie $\cup R$ všetkých množín $R_i \in R$ sa rovná $E(G)$. \cite{diestel2024graph}
 
 \textit{Kružnicovou dekompozíciou grafu} nazveme rozklad $E(G)$ na kružnice, ktoré nezdieľajú žiadnu
-hranu. Ak každá kružnica tohto rozkladu má párnu dĺžku nazveme tento rozklad \textit{párnym} (ďalej
+hranu. Ak každá kružnica tohto rozkladu má párnu dĺžku, nazveme tento rozklad \textit{párnym} (ďalej
 \textit{ECD} z anglického \textit{Even cycle decomposition}).
 Pre ECD grafu zafarbíme každú jeho kružnicu tak, aby kružnice so spoločným
 vrcholom nemali rovnakú farbu. Potom zjednotenie kružníc v každej farebnej triede 
@@ -59,17 +59,28 @@ na takéto zafarbenie je $m$ potom ECD rozklad má \textit{veľkosť} $m$. \cite
     \centering
     \caption{ECD rozklad veľkosti 3 na červenú, modrú a zelenú kružnicu}
 \end{figure}
-\paragraph{Implementácia:}
-Do grafovej knižnice \textit{ba-graph} som v jazyku c++ naimplementoval backtracking (prehľadávanie 
-s návratom) algoritmus, ktorý nájde veľkosť ECD grafu. Pseudokód algoritmu je uvedený nižšie.
+\paragraph{Práca za semester:}
+Do grafovej knižnice \texttt{ba-graph} som v jazyku \texttt{c++} naimplementoval backtracking (prehľadávanie 
+s návratom) algoritmus, ktorý nájde veľkosť ECD grafu (súbor \texttt{ecd.hpp}). Pseudokód algoritmu je uvedený nižšie.
 \begin{algorithmic}[1]
-    
+   
+    \Function{NájdiECD}{graf}
+        \State inicializuj počet farebný tried na 0
+        \State \Call{SkúsZačaťNovúKružnicu}{}
+
+        \If{žiadne ECD sa nenašlo}
+            \State \Return neexistuje ECD
+        \Else
+            \State \Return najmenšie ECD
+        \EndIf
+    \EndFunction
+    \State
     \Function{SkúsZačaťNovúKružnicu}{}
         \If{všetky hrany sú priradené farebnej triede}
-            \State porovnaj veľkosť tohto ECD s doteraz najmenším, ak je menšie zapamätaj si farby hrán
+            \State porovnaj veľkosť tohto ECD s doteraz najmenším nájdeným, ak je menšie zapamätaj si priradenie hrán do farebných tried
             \State \Return
         \Else
-            \State $h \gets$ zober nejakú nepriradenú hranu
+            \State $h \gets$ zober nejakú nepriradenú hranu \label{line:vyber}
             \ForAll{$f \in$ aktuálne farebné triedy}
                 \State skús priradiť $h$ do $f$ a zapamätaj si, že $h$ bude v kružnici na párnej pozícii
                 \State \Call{SkúsPokračovaťVAktuálnejKružnici}{$h$}
@@ -84,7 +95,7 @@ s návratom) algoritmus, ktorý nájde veľkosť ECD grafu. Pseudokód algoritmu
         \EndIf
 
     \EndFunction
-
+    \State
     \Function{SkúsPokračovaťVAktuálnejKružnici}{\textit{aktuálnaHrana}}
         \LComment{Over či je aktuálnaHrana správne zafarbená. V korektnej ECD 
         musia byť práve 2 susedné hrany v rovnakej farebnej triede a na pozíciach 
@@ -118,15 +129,15 @@ s návratom) algoritmus, ktorý nájde veľkosť ECD grafu. Pseudokód algoritmu
     \EndFunction
 \end{algorithmic}
 
-K algoritmu su urobené aj testy. Skúšal som viacero variant algoritmu (napríklad, že 
-iterujeme cez všetky možné veľkosti ECD a pre každú veľkosť skúšame nájsť jedno zafarbenie.
-Ak ho nájdeme, skončíme.), ale tento bol najrýchlejší. Výber hrany na riadku 6. je 
-nedeterministický. Skúšal som program, kde je poradie výberu hrán náhodne a čas rôzne spustenie
-programu na rovnakých vstupoch trvaly rôzne dlho. Teda to v akom poradí sú tam vyberané 
-hrany ovplyvňuje rýchlosť. Skúšal som heuristiku, kde sa vždy vyberie hrana, ktorá má najviac
+K algoritmu sú urobené aj testy (\texttt{testy\_ecd.cpp}). Skúšal som viacero variant algoritmu (napríklad, že 
+iterujeme cez všetky možné veľkosti ECD od najmenšej po najväčšiu a pre každú veľkosť skúšame nájsť jedno zafarbenie.
+Ak ho nájdeme, skončíme.), ale tento bol najrýchlejší. Pri výbere hrany na riadku \ref{line:vyber}
+máme viacej možností. Skúšal som program, kde je poradie výberu hrán náhodne a spustenia
+programu na rovnakých vstupoch trvali rôzne dlho. Teda to, v akom poradí sú tam vyberané 
+hrany, ovplyvňuje rýchlosť. Skúšal som heuristiku, kde sa vždy vyberie hrana, ktorá má najviac
 susedov priradených do nejakej farebnej triedy. Rýchlejší bol však variant, kde sa vrcholy vyberajú
 na základe poradia, v ktorom sú prehľadávané do šírky BFS algoritmom od prvej hrany, ktorá sa zafarbí.
-Varianty backtrackingu sa dajú pozrieť ako iné git vetvy. 
+Varianty backtrackingu sa dajú pozrieť ako rôzne \texttt{git} vetvy. 
 
 \paragraph{Práca na letný semester:} ECD by sa malo dať nájsť pomocou SAT solvera.
 \printbibliography
