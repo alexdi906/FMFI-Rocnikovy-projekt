@@ -3,6 +3,7 @@
 
 #include <vector>
 #include <map>
+#include <set>
 #include <algorithm>
 #include <climits>
 #include <utility>
@@ -11,8 +12,6 @@
 #include "distance.hpp"
 #include "degree.hpp"
 #include "../algorithms/isomorphism/isomorphism.hpp"
-#include "../operations/basic.hpp"
-#include <random>
 
 namespace ba_graph
 {
@@ -31,20 +30,31 @@ class ECD
         {
             edgeToNumber  = line_graph_with_map(G).second;
             std::vector<Number> nums = LG.list(RP::all(), RT::n());
-            uncolored.insert(uncolored.end(), nums.begin(), nums.end());
-            random_order(uncolored);
-            minSize = INT_MAX;
-            hasEcd = false;
-            coloring.resize(max_number(LG).to_int()+1, -1);
 
             if (G.contains([](const Rotation& r)-> bool { return r.degree() & 1; }) || G.contains(RP::all(), IP::loop()) || (G.size()&1))
             {
+                hasEcd = false;
                 return;
             }
 
-            startCycle(0);
-            coloring = minColoring;
-            assert((int)uncolored.size() == LG.order());
+            for(int i = 0; i<=nums.size()/2; ++i)
+            {
+                uncolored.insert(nums.begin(), nums.end());
+
+                minSize = INT_MAX;
+                hasEcd = false;
+
+
+                hasEcd = startCycle(i);
+                assert(uncolored.size() == nums.size());
+                assert(coloring.size() == 0);
+                coloring = minColoring;
+
+                if(hasEcd)
+                {
+                    break;
+                }
+            }
         }
 
         //construct each ecd color class based on the minimal size edge coloring
@@ -63,8 +73,7 @@ class ECD
 
             for (auto&e : G.list(RP::all(), IP::primary(), IT::e()))
             {
-                Graph&g = subgraphs[coloring[edgeToNumber[e].to_int()]/2];
-
+                Graph&g = subgraphs[coloring[edgeToNumber[e]]/2];
                 if(!g.contains(RP::v(e.v1())))
                 {
                     addV(g,e.v1(), G.find(RP::v(e.v1()))->n(),f);
@@ -89,32 +98,31 @@ class ECD
         const Graph LG; // for simplicity, we will be assigning vertices of a line graph to cycles
         int minSize; // minimum ecd size
         bool hasEcd;
-        std::vector<int> minColoring; //to which color class does vertex belong, color class i consists of vertex colors 2*i, 2*i+1
-        std::vector<int> coloring;
-        std::vector<Number> uncolored;
+        std::map<Number, int> minColoring; //to which color class does vertex belong, color class i consists of vertex colors 2*i, 2*i+1
+        std::map<Number, int> coloring;
+
         std::map<Edge, Number> edgeToNumber; // conversion from line graph
+        std::set<Number> uncolored;
+
 
         //try to assign vertex to cycle of color class col/2
-        void assignCol(Number vert, int col, Number startVert, int curSize)
+        bool assignCol(Number vert, int col, Number startVert, int curSize)
         {
-            coloring[vert.to_int()] = col;
-            uncolored.erase(std::find(uncolored.begin(), uncolored.end(), vert));
-            findCycle(vert, col, startVert, curSize);
+            coloring[vert] = col;
+            uncolored.erase(vert);
 
-            coloring[vert.to_int()] = -1;
-            uncolored.push_back(vert);
-        }
 
-      void random_order(std::vector<Number>&vec)
-        {
-            std::random_device rd;
-            std::mt19937 gen(rd());
-            std::shuffle(vec.begin(), vec.end(), gen);
+            bool has = findCycle(vert, col, startVert, curSize);
+
+            coloring.erase(vert);
+            uncolored.insert(vert);
+
+            return has;
         }
 
         //find an even cycle beginning at startVert, using colors col, col+1 alternately
         //the cycle will belong to color class col/2
-        void findCycle(Number curVert, int col, Number startVert, int curSize)
+        bool findCycle(Number curVert, int col, Number startVert, int curSize)
         {
 
             int othCol = col/2*2 + ((col&1)^1);
@@ -123,45 +131,50 @@ class ECD
             for(auto&I : LG[curVert])
             {
                 Number neigh = I.n2();
-
-                if(coloring[neigh.to_int()] == -1)
+                if(!coloring.contains(neigh))
                 {
                     continue;
                 }
                 //in an even cycle both my neighbors have to be of different parity
-                if(coloring[neigh.to_int()] == col)
+                if(coloring[neigh] == col)
                 {
-                    return;
+                    return false;
                 }
-                if(coloring[neigh.to_int()] == othCol)
+                if(coloring[neigh] == othCol)
                 {
                     cntOthCol++;
+                    //exactly 2 of my neighbors have to be of different parity
                     if(cntOthCol > 2)
                     {
-                        return;
+                        return false;
                     }
-                    // exactly 2 of my neighbors have to be of different parity
-
                 }
             }
 
+            //if we returned to start (and we didn't just leave start) we have found an even cycle
             if(cntOthCol == 2)
             {
-                startCycle(curSize);
-                return;
+                return startCycle(curSize);
             }
 
-            for(auto&I : LG[curVert])
-            {
-                Number neigh = I.n2();
-                if(coloring[neigh.to_int()] == -1)
+                std::vector<std::pair<int, Number>> order;
+
+                for(auto&I:LG[curVert])
                 {
-                    assignCol(neigh,othCol, startVert, curSize);
+                    auto neigh = I.n2();
+                    if(coloring.contains(neigh)){
+                      continue;
+                    }
+                    if(assignCol(neigh,othCol, startVert, curSize))
+                    {
+                      return true;
+                    }
                 }
-            }
+
+            return false;
         }
 
-        void startCycle(int curSize)
+        bool startCycle(int curSize)
         {
 
             // all vertices have been assigned to cycles
@@ -170,25 +183,22 @@ class ECD
                 minSize = curSize;
                 minColoring = coloring;
                 hasEcd = true;
-                return;
+                return true;
             }
 
-            Number startVert = uncolored.back();
+
+            Number startVert = *uncolored.begin();
 
             //try to assign vertex to some existing color class
             for(int i = 0; i<curSize; ++i)
             {
-                assignCol(startVert, 2*i, startVert,curSize);
+                if(assignCol(startVert, 2*i, startVert,curSize))
+                {
+                    return true;
+                }
             }
 
-            //assign to a new color class
-            curSize++;
-            if(curSize >= minSize)
-            {
-                return;
-            }
-
-            assignCol(startVert, 2*(curSize-1), startVert, curSize);
+            return false;
         }
 
 };
