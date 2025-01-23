@@ -7,6 +7,7 @@
 #include <algorithm>
 #include <climits>
 #include <utility>
+#include <operations/basic.hpp>
 
 #include "../operations/line_graph.hpp"
 #include "distance.hpp"
@@ -31,9 +32,15 @@ class ECD
             edgeToNumber  = line_graph_with_map(G).second;
             std::vector<Number> nums = LG.list(RP::all(), RT::n());
 
+
+            int max_num = max_number(LG).to_int()+1;
+            saturation.resize(max_num+1, std::vector<int>(max_num+1, 0));
+            saturDeg.resize(max_num+1);
+            coloring.resize(max_num+1, -1);
+
             for(Number&n : nums)
             {
-                saturation[n] = {};
+                // saturation[n] = {};
                 saturOrder.insert(std::make_pair(0, n));
             }
             uncolored.insert(nums.begin(), nums.end());
@@ -48,11 +55,24 @@ class ECD
 
             startCycle(0);
             assert(uncolored.size() == nums.size());
-            assert(coloring.size() == 0);
+            for(int &i : coloring)
+            {
+                assert(i == -1);
+            }
+            // assert(coloring.size() == 0);
             assert(saturOrder.size() == nums.size());
             for(auto&i : saturation)
             {
-                assert(i.second.size() == 0);
+                for(auto&j : i)
+                {
+
+                    assert(j == 0);
+                }
+            }
+
+            for(auto&i : saturDeg)
+            {
+                assert(i == 0);
             }
             coloring = minColoring;
         }
@@ -73,7 +93,7 @@ class ECD
 
             for (auto&e : G.list(RP::all(), IP::primary(), IT::e()))
             {
-                Graph&g = subgraphs[coloring[edgeToNumber[e]]/2];
+                Graph&g = subgraphs[coloring[edgeToNumber[e].to_int()]/2];
                 if(!g.contains(RP::v(e.v1())))
                 {
                     addV(g,e.v1(), G.find(RP::v(e.v1()))->n(),f);
@@ -98,9 +118,13 @@ class ECD
         const Graph LG; // for simplicity, we will be assigning vertices of a line graph to cycles
         int minSize; // minimum ecd size
         bool hasEcd;
-        std::map<Number, int> minColoring; //to which color class does vertex belong, color class i consists of vertex colors 2*i, 2*i+1
-        std::map<Number, int> coloring;
-        std::map<Number, std::set<int>> saturation;
+        // std::map<Number, int> minColoring; //to which color class does vertex belong, color class i consists of vertex colors 2*i, 2*i+1
+        // std::map<Number, int> coloring;
+        std::vector<int> coloring;
+        std::vector<int> minColoring;
+        std::vector<std::vector<int>> saturation;
+        std::vector<int> saturDeg;
+        // std::map<Number, std::set<int>> saturation;
         std::set<std::pair<int, Number>> saturOrder;
         std::vector<Number> order;
 
@@ -111,9 +135,9 @@ class ECD
         //try to assign vertex to cycle of color class col/2
         void assignCol(Number vert, int col, Number startVert, int curSize)
         {
-            coloring[vert] = col;
+            coloring[vert.to_int()] = col;
             uncolored.erase(vert);
-            saturOrder.erase(std::make_pair(saturation[vert].size(), vert));
+            saturOrder.erase(std::make_pair(saturDeg[vert.to_int()], vert));
 
             order.push_back(vert);
 
@@ -122,13 +146,14 @@ class ECD
             for(auto&I : LG[vert])
             {
                 Number neigh = I.n2();
-                if(uncolored.contains(neigh) && !saturation[neigh].contains(col))
+                if(coloring[neigh.to_int()] == -1 && !saturation[neigh.to_int()][col])
                 {
                     assert(!visited.contains(neigh));
-                    int cnt = saturation[neigh].size();
+                    int cnt = saturDeg[neigh.to_int()];
                     saturOrder.erase(std::make_pair(cnt, neigh));
 
-                    saturation[neigh].insert(col);
+                    saturation[neigh.to_int()][col] = 1;
+                    saturDeg[neigh.to_int()]++;
                     saturOrder.insert(std::make_pair(cnt+1, neigh));
                     changed.push_back(neigh);
                     visited.insert(neigh);
@@ -137,15 +162,17 @@ class ECD
             findCycle(vert, col, startVert, curSize);
 
             order.pop_back();
-            coloring.erase(vert);
+            coloring[vert.to_int()]=-1;
             uncolored.insert(vert);
-            saturOrder.insert(std::make_pair(saturation[vert].size(), vert));
+            saturOrder.insert(std::make_pair(saturDeg[vert.to_int()], vert));
 
             for(auto&n : changed)
             {
-                int cnt = saturation[n].size();
+                int cnt = saturDeg[n.to_int()];
+                // int cnt = saturation[n].size();
                 saturOrder.erase(std::make_pair(cnt, n));
-                saturation[n].erase(col);
+                saturation[n.to_int()][col]--;
+                saturDeg[n.to_int()]--;
 
                 saturOrder.insert(std::make_pair(cnt-1, n));
             }
@@ -162,16 +189,16 @@ class ECD
             for(auto&I : LG[curVert])
             {
                 Number neigh = I.n2();
-                if(!coloring.contains(neigh))
+                if(coloring[neigh.to_int()] == -1)
                 {
                     continue;
                 }
                 //in an even cycle both my neighbors have to be of different parity
-                if(coloring[neigh] == col)
+                if(coloring[neigh.to_int()] == col)
                 {
                     return;
                 }
-                if(coloring[neigh] == othCol)
+                if(coloring[neigh.to_int()] == othCol)
                 {
                     cntOthCol++;
                     //exactly 2 of my neighbors have to be of different parity
@@ -188,23 +215,16 @@ class ECD
                 startCycle(curSize);
                 return;
             }
-                std::vector<std::pair<int, Number>> order;
-
-                for(auto&I:LG[curVert])
+                for(auto&I : LG[curVert])
                 {
-                    auto neigh = I.n2();
-                    if(!coloring.contains(neigh))
+                    Number neigh = I.n2();
+                    if(coloring[neigh.to_int()]==-1)
                     {
-                        order.emplace_back(saturation[neigh].size(), neigh);
+
+                        assignCol(neigh,othCol, startVert, curSize);
                     }
                 }
 
-                std::sort(order.begin(), order.end(), std::greater<std::pair<int,Number>>());
-                //
-                for(auto&[size,neigh] : order)
-                {
-                    assignCol(neigh,othCol, startVert, curSize);
-                }
         }
 
         void startCycle(int curSize)
