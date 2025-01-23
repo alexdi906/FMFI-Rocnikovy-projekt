@@ -100,7 +100,7 @@ class ECD
         bool hasEcd;
         std::map<Number, int> minColoring; //to which color class does vertex belong, color class i consists of vertex colors 2*i, 2*i+1
         std::map<Number, int> coloring;
-        std::map<Number, std::multiset<int>> saturation;
+        std::map<Number, std::set<int>> saturation;
         std::set<std::pair<int, Number>> saturOrder;
         std::vector<Number> order;
 
@@ -122,9 +122,9 @@ class ECD
             for(auto&I : LG[vert])
             {
                 Number neigh = I.n2();
-                if(uncolored.contains(neigh) && !visited.contains(neigh)) //&& !saturation[neigh].contains(col))
+                if(uncolored.contains(neigh) && !saturation[neigh].contains(col))
                 {
-                    // assert(!visited.contains(neigh));
+                    assert(!visited.contains(neigh));
                     int cnt = saturation[neigh].size();
                     saturOrder.erase(std::make_pair(cnt, neigh));
 
@@ -145,7 +145,7 @@ class ECD
             {
                 int cnt = saturation[n].size();
                 saturOrder.erase(std::make_pair(cnt, n));
-                saturation[n].erase(saturation[n].find(col));
+                saturation[n].erase(col);
 
                 saturOrder.insert(std::make_pair(cnt-1, n));
             }
@@ -156,7 +156,6 @@ class ECD
         void findCycle(Number curVert, int col, Number startVert, int curSize)
         {
 
-            bool neighStart = false; //is startVert by neighbor
             int othCol = col/2*2 + ((col&1)^1);
             int cntOthCol = 0;
 
@@ -181,10 +180,6 @@ class ECD
                         return;
                     }
                 }
-                if(neigh == startVert)
-                {
-                    neighStart = true;
-                }
             }
 
             //if we returned to start (and we didn't just leave start) we have found an even cycle
@@ -193,7 +188,6 @@ class ECD
                 startCycle(curSize);
                 return;
             }
-
                 std::vector<std::pair<int, Number>> order;
 
                 for(auto&I:LG[curVert])
@@ -211,10 +205,8 @@ class ECD
                 {
                     assignCol(neigh,othCol, startVert, curSize);
                 }
-
         }
 
-        // TODO choose starting vertex based on some heuristic
         void startCycle(int curSize)
         {
 
