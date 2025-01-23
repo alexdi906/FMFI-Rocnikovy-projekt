@@ -9,10 +9,11 @@
 #include <utility>
 #include <operations/basic.hpp>
 
-#include "../operations/line_graph.hpp"
-#include "distance.hpp"
-#include "degree.hpp"
-#include "../algorithms/isomorphism/isomorphism.hpp"
+#include <operations/line_graph.hpp>
+#include <invariants/distance.hpp>
+#include <invariants/degree.hpp>
+#include <algorithms/isomorphism/isomorphism.hpp>
+
 
 namespace ba_graph
 {
