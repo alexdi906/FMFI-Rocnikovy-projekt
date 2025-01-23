@@ -54,6 +54,11 @@ vrcholom nemali rovnakú farbu. Potom zjednotenie kružníc v každej farebnej t
 bude 2-regulárny podgraf pôvodného grafu. Ak najmenší počet farieb potrebných 
 na takéto zafarbenie je $m$ potom ECD rozklad má \textit{veľkosť} $m$. \cite{MALNEGRO2024113844}
 
+\begin{figure}[h]
+    \includegraphics[scale=0.4]{TexResources/2c3ecd}
+    \centering
+    \caption{ECD rozklad veľkosti 3 na červenú, modrú a zelenú kružnicu}
+\end{figure}
 \paragraph{Implementácia:}
 Do grafovej knižnice \textit{ba-graph} som v jazyku c++ naimplementoval backtracking (prehľadávanie 
 s návratom) algoritmus, ktorý nájde veľkosť ECD grafu. Pseudokód algoritmu je uvedený nižšie.
