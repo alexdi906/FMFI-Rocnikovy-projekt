@@ -1,4 +1,4 @@
-#include "implementation.h"
+#include <impl/basic/include.hpp>
 #include "ecd.hpp"
 #include <algorithms/isomorphism/isomorphism.hpp>
 #include <cassert>
@@ -14,7 +14,7 @@
 
 using namespace ba_graph;
 
-void TestEcd(Graph &g, int size) {
+void testEcd(Graph &g, int size) {
     assert(ecd_size(g) == size);
 
     Factory f;
@@ -80,17 +80,17 @@ int main() {
     assert(!is_ecd(g, subg));
 
     g = empty_graph(0);
-    TestEcd(g, 0);
+    testEcd(g, 0);
 
     g = circuit(2);
-    TestEcd(g, 1);
+    testEcd(g, 1);
     for (int i = 4; i <= 8; i += 2) {
         g = empty_graph(0);
 
         for (int j = 1; j <= 2; ++j) {
             Graph add(circuit(i));
             add_graph<NumberMapper>(g, add, g.order());
-            TestEcd(g, 1);
+            testEcd(g, 1);
         }
     }
 
@@ -100,7 +100,7 @@ int main() {
             addE(g, Location(0, 1));
         }
 
-        TestEcd(g, i + 1);
+        testEcd(g, i + 1);
     }
 
     g = empty_graph(5);
@@ -108,21 +108,21 @@ int main() {
         addE(g, Location(i, i + 1));
         addE(g, Location(i, i + 1));
     }
-    TestEcd(g, 2);
+    testEcd(g, 2);
 
     auto make_g_2C3 = []() {
-        Graph g_2C3(empty_graph(3));
-        for (int i = 0; i < 3; ++i) {
-            addMultipleE(g_2C3, {Location(i, (i + 1) % 3), Location(i, (i + 1) % 3)});
-        }
+      Graph g_2C3(empty_graph(3));
+      for (int i = 0; i < 3; ++i) {
+          addMultipleE(g_2C3, {Location(i, (i + 1) % 3), Location(i, (i + 1) % 3)});
+      }
 
-        return g_2C3;
+      return g_2C3;
     };
     g = make_g_2C3();
-    TestEcd(g, 3);
+    testEcd(g, 3);
     Graph add(make_g_2C3());
     add_graph<NumberMapper>(g, add, g.order());
-    TestEcd(g, 3);
+    testEcd(g, 3);
 
     g = empty_graph(1);
     addE(g, Location(0, 0));
@@ -146,27 +146,27 @@ int main() {
 
     // https://doi.org/10.1016/j.disc.2013.04.027
     auto create_macajova_mazak = [](int size) {
-        Graph g(empty_graph(1));
+      Graph g(empty_graph(1));
 
-        for (int i = 0; i < size; ++i) {
-            Graph add(complete_graph(4));
-            add_graph<NumberMapper>(g, add, g.order());
+      for (int i = 0; i < size; ++i) {
+          Graph add(complete_graph(4));
+          add_graph<NumberMapper>(g, add, g.order());
 
-            addE(g, Location(4 * i + 1, 4 * i));
-            addE(g, Location(4 * i + 2, std::max(4 * i - 1, 0)));
-        }
+          addE(g, Location(4 * i + 1, 4 * i));
+          addE(g, Location(4 * i + 2, std::max(4 * i - 1, 0)));
+      }
 
-        addE(g, Location(0, 4 * size));
-        addE(g, Location(0, 4 * size - 1));
+      addE(g, Location(0, 4 * size));
+      addE(g, Location(0, 4 * size - 1));
 
-        assert(min_deg(g) == 4 && max_deg(g) == 4);
-        assert(vertex_connectivity(g) == 3);
-        if (size == 1) {
-            Graph k_5(complete_graph(5));
-            assert(are_isomorphic(g, k_5));
-        }
+      assert(min_deg(g) == 4 && max_deg(g) == 4);
+      assert(vertex_connectivity(g) == 3);
+      if (size == 1) {
+          Graph k_5(complete_graph(5));
+          assert(are_isomorphic(g, k_5));
+      }
 
-        return g;
+      return g;
     };
 
     for (int i = 1; i <= 2; ++i) {
@@ -176,49 +176,49 @@ int main() {
 
     // https://doi.org/10.1016/j.disc.2011.12.007
     auto create_markstrom = []() {
-        Graph g(empty_graph(9));
+      Graph g(empty_graph(9));
 
-        for (int i = 0; i < 5; ++i) {
-            for (int j = i + 1; j < 5; ++j) {
-                addE(g, Location(i, j));
-            }
-        }
+      for (int i = 0; i < 5; ++i) {
+          for (int j = i + 1; j < 5; ++j) {
+              addE(g, Location(i, j));
+          }
+      }
 
-        for (int i = 4; i < 9; ++i) {
-            for (int j = i + 1; j < 9; ++j) {
-                addE(g, Location(i, j));
-            }
-        }
+      for (int i = 4; i < 9; ++i) {
+          for (int j = i + 1; j < 9; ++j) {
+              addE(g, Location(i, j));
+          }
+      }
 
-        for (int i = 2; i <= 3; ++i) {
-            int v = i + 3;
+      for (int i = 2; i <= 3; ++i) {
+          int v = i + 3;
 
-            deleteE(g, Location(4, i));
-            deleteE(g, Location(4, v));
+          deleteE(g, Location(4, i));
+          deleteE(g, Location(4, v));
 
-            addE(g, Location(v, i));
-        }
+          addE(g, Location(v, i));
+      }
 
-        assert(vertex_connectivity(g) == 3);
-        assert(min_deg(g) == 4 && max_deg(g) == 4);
+      assert(vertex_connectivity(g) == 3);
+      assert(min_deg(g) == 4 && max_deg(g) == 4);
 
-        return g;
+      return g;
     };
     g = create_markstrom();
     assert(ecd_size(g) == -1);
 
-    const std::string kPath = "../ba-graph/resources/graphs/4regular/";
+    const std::string path = "../../resources/graphs/4regular/";
 
     // 4 regular graphs with chromatic index 4 have ecd = 2
     for (int o = 6; o <= 12; o += 2) {
-        std::string file = kPath + "chromatic_index_4/" + (o < 10 ? "0" : "") +
+        std::string file = path + "chromatic_index_4/" + (o < 10 ? "0" : "") +
             std::to_string(o) + "_4_3_chi4.g6";
 
         Factory f;
         auto graphs = read_graph6_file(file, f, 0, 10).graphs();
 
         for (auto &G : graphs) {
-            TestEcd(G, 2);
+            testEcd(G, 2);
         }
     }
 
@@ -227,7 +227,7 @@ int main() {
     // all these graphs have chi = 3 according to invariants/test_colouring
     for (int i = 4; i <= 8; i += 2) {
         std::string filename =
-            "../ba-graph/resources/graphs/" + internal::stored_cubic_path(1, 3, i);
+            "../../resources/graphs/" + internal::stored_cubic_path(1, 3, i);
         Factory f;
         auto graphs = read_graph6_file(filename, f, 0, 5).graphs();
         for (auto &G : graphs) {
@@ -237,10 +237,10 @@ int main() {
     }
 
     //graphs with no ecd
-    const std::vector<int> kOrdersClawfree = {10, 13};
+    const std::vector<int> ordersClawfree = {10, 13};
 
-    for (int o : kOrdersClawfree) {
-        std::string file = kPath + "no_ECD/" + (o < 10 ? "0" : "") +
+    for (int o : ordersClawfree) {
+        std::string file = path + "no_ECD/" + (o < 10 ? "0" : "") +
             std::to_string(o) + "_4_3.clawfree.g6.C_NO";
 
         Factory f;
@@ -251,9 +251,9 @@ int main() {
         }
     }
 
-    const std::vector<int> kOrdersClaw = {5, 9};
-    for (int o : kOrdersClaw) {
-        std::string file = kPath + "no_ECD/" + (o < 10 ? "0" : "") +
+    const std::vector<int> ordersClaw = {5, 9};
+    for (int o : ordersClaw) {
+        std::string file = path + "no_ECD/" + (o < 10 ? "0" : "") +
             std::to_string(o) + "_4_3.3c.g6.C_NO";
 
         Factory f;
