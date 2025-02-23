@@ -32,11 +32,12 @@
 
 \paragraph{Pojmy:}
 
-\textit{Graf} je dvojica $G = (V,E)$, kde $V,E$ sú množiny také, že $E \subseteq V\times V$
-a $V \cap E = \emptyset$. Prvky $V$ sa nazývajú \textit{vrcholy} grafu $G$ a prvky $E$ jeho \textit{hrany}.
-Množinu hrán grafu $G$ označujeme ako $E(G)$. Vrchol 
-$v$ je \textit{incidentný} s hranou $e$, ak $v\in e$. \textit{Stupeň vrcholu} je počet
-hrán s ním incidentných. Dve hrany sú \textit{susedné}, ak existuje vrchol, ktorý je 
+\textit{Graf} je dvojica $G = (V,E)$ disjunktných množín $V$ a $E$ spolu so zobrazením
+$f:E \to V \cup \binom{V}{2} $. Prvky $V$ sa nazývajú \textit{vrcholy} grafu $G$ a prvky $E$ jeho \textit{hrany}.
+$f$ priraďuje každej hrane jej \textit{konce} (teda povolujeme multigrafy). Ak je hrane priradený iba jeden vrchol, nazveme ju \textit{slučka}.
+Hranu s koncovými vrcholmi $x,y$ označíme $xy$. Množinu hrán grafu $G$ označujeme ako $E(G)$. Vrchol 
+$v$ je \textit{incidentný} s hranou $e$, ak $v\in f(e)$. \textit{Stupeň vrcholu} je počet
+hrán s ním incidentných, pričom slučka pridáva k stupni vrchola 2. Dve hrany sú \textit{susedné}, ak existuje vrchol, ktorý je 
 s obidvomi incidentný. Ak všetky vrcholy grafu
 majú stupeň $k$, graf sa nazýva \textit{$k$-regulárny}. \textit{Cesta} je neprázdny graf $P = (V,E)$,
 kde $V = \{x_0, x_1, \ldots, x_k\}$ a $E = \{x_0x_1, x_1x_2, \ldots, x_{k-1}x_k\}$,
@@ -129,7 +130,7 @@ s návratom) algoritmus, ktorý nájde veľkosť ECD grafu (súbor \texttt{ecd.h
     \EndFunction
 \end{algorithmic}
 
-K algoritmu sú urobené aj testy (\texttt{testy\_ecd.cpp}). Skúšal som viacero variant algoritmu (napríklad, že 
+K algoritmu sú urobené aj testy (\texttt{test\_ecd.cpp}). Skúšal som viacero variant algoritmu (napríklad, že 
 iterujeme cez všetky možné veľkosti ECD od najmenšej po najväčšiu a pre každú veľkosť skúšame nájsť jedno zafarbenie.
 Ak ho nájdeme, skončíme.), ale tento bol najrýchlejší. Pri výbere hrany na riadku \ref{line:vyber}
 máme viacej možností. Skúšal som program, kde je poradie výberu hrán náhodne a spustenia
