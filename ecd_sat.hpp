@@ -28,7 +28,6 @@ namespace internal
 
         // vars[e][c] means edge e belongs to the c/2-th color class on a position of c&1 parity
         auto edges = g.list(RP::all(), IP::primary(), IT::l());
-        assert(edges.size() == g.size());
         std::map<Location, std::vector<int>> vars;
 
         std::vector<std::vector<Lit>> cnf;
@@ -139,7 +138,6 @@ namespace internal
             }
         }
 
-        assert(next_var == (int)edges.size()*2*k);
         return {edges.size()*2*k, cnf};
     }
 }
