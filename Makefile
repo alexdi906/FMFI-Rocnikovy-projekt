@@ -4,14 +4,14 @@ COMPILE_DBG = $(CXX) $(CFLAGS) $(DBGFLAGS)
 
 TEST_VERSION ?= SAT
 
-all: test
+all: test_ecd
 
 test_backtr:
 	make test VERSION=BACKTR
 test_sat:
 	make test VERSION=SAT
 
-test: test_ecd.cpp
+test_ecd: test_ecd.cpp
 	$(COMPILE_DBG) test_ecd.cpp -o test_ecd.out -D$(TEST_VERSION) -DCOMPILE_WITH_CRYPTOMINISAT -lcryptominisat5
 	./test_ecd.out
 
