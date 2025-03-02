@@ -1,14 +1,15 @@
 #ifndef BA_GRAPH_INVARIANTS_ECD_HPP
 #define BA_GRAPH_INVARIANTS_ECD_HPP
 
+#include "algorithms/isomorphism/isomorphism.hpp"
+#include "invariants/degree.hpp"
+#include "invariants/distance.hpp"
+#include "operations/basic.hpp"
+#include "operations/line_graph.hpp"
+
 #include <algorithm>
-#include <algorithms/isomorphism/isomorphism.hpp>
 #include <climits>
-#include <invariants/degree.hpp>
-#include <invariants/distance.hpp>
 #include <map>
-#include <operations/basic.hpp>
-#include <operations/line_graph.hpp>
 #include <utility>
 #include <vector>
 
@@ -16,14 +17,6 @@ namespace ba_graph
 {
 namespace internal
 {
-// Cycle decomposition, is a partition of E(g) into edge-disjoint cycles.
-// Cycle decomposition is called even, if each cycle of the cycle decomposition
-// is an even length cycle. For a cycle decomposition, we color each cycle of
-// the decomposition so that the cycles sharing a vertex do not receive the same
-// color. Thus, the union of cycles in each color class is a 2-regular subgraph.
-// If the minimum number of colors required for such a coloring is m, then the
-// cycle decomposition is said to be of size m.
-// Source: https://doi.org/10.1016/j.disc.2023.113844
 class Ecd
 {
    public:

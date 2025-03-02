@@ -1,28 +1,35 @@
-#include <algorithms/isomorphism/isomorphism.hpp>
-#include <cassert>
-#include <graphs.hpp>
 #include <impl/basic/include.hpp>
-#include <invariants/connectivity.hpp>
-#include <io/graph6.hpp>
-#include <io/print_nice.hpp>
-#include <iostream>
-#include <operations/add_graph.hpp>
-#include <operations/line_graph.hpp>
-#include <sat/solver_cmsat.hpp>
+#include "algorithms/isomorphism/isomorphism.hpp"
+#include "graphs.hpp"
+#include "invariants/connectivity.hpp"
+#include "io/graph6.hpp"
+#include "io/print_nice.hpp"
+#include "operations/add_graph.hpp"
+#include "invariants/colouring.hpp"
+#include "operations/line_graph.hpp"
+#include "sat/solver_cmsat.hpp"
+#include "ecd.hpp"
+#include "ecd_sat.hpp"
+
 #include <string>
 #include <vector>
 
-#include "ecd.hpp"
-#include "ecd_sat.hpp"
 
 using namespace ba_graph;
 
 CMSatSolver solver;
 
-void testEcd(Graph &g, int size)
+void test_ecd(Graph &g, int size, bool test_equal = true)
 {
 #ifdef BACKTR
-    assert(ecd_size(g) == size);
+    if(equal)
+    {
+        assert(ecd_size(g) == size);
+    }
+    else
+    {
+        assert(ecd_size(g) != size);
+    }
 
     Factory f;
     std::vector<Graph> sub_g = ecd_subgraphs(g, f);
@@ -30,7 +37,14 @@ void testEcd(Graph &g, int size)
 
 #endif
 #ifdef SAT
-    assert(ecd_size_sat(solver, g) == size);
+    if(test_equal)
+    {
+        assert(ecd_size_sat(solver, g) == size);
+    }
+    else
+    {
+        assert(ecd_size_sat(solver, g) != size);
+    }
 #endif
 }
 
@@ -93,45 +107,45 @@ int main()
     assert(!is_ecd(g, sub_g));
 
     g = empty_graph(0);
-    testEcd(g, 0);
+    test_ecd(g, 0);
 
     g = circuit(2);
-    testEcd(g, 1);
-    for (int i = 4; i <= 8; i += 2)
+    test_ecd(g, 1);
+    for(int i = 4; i <= 8; i += 2)
     {
         g = empty_graph(0);
 
-        for (int j = 1; j <= 2; ++j)
+        for(int j = 1; j <= 2; ++j)
         {
             Graph add(circuit(i));
             add_graph<NumberMapper>(g, add, g.order());
-            testEcd(g, 1);
+            test_ecd(g, 1);
         }
     }
 
     g = empty_graph(2);
-    for (int i = 0; i < 3; ++i)
+    for(int i = 0; i < 3; ++i)
     {
-        for (int j = 0; j < 2; ++j)
+        for(int j = 0; j < 2; ++j)
         {
             addE(g, Location(0, 1));
         }
 
-        testEcd(g, i + 1);
+        test_ecd(g, i + 1);
     }
 
     g = empty_graph(5);
-    for (int i = 0; i < 4; ++i)
+    for(int i = 0; i < 4; ++i)
     {
         addE(g, Location(i, i + 1));
         addE(g, Location(i, i + 1));
     }
-    testEcd(g, 2);
+    test_ecd(g, 2);
 
     auto make_g_2C3 = []()
     {
         Graph g_2C3(empty_graph(3));
-        for (int i = 0; i < 3; ++i)
+        for(int i = 0; i < 3; ++i)
         {
             addMultipleE(g_2C3, {Location(i, (i + 1) % 3), Location(i, (i + 1) % 3)});
         }
@@ -139,37 +153,37 @@ int main()
         return g_2C3;
     };
     g = make_g_2C3();
-    testEcd(g, 3);
+    test_ecd(g, 3);
     Graph add(make_g_2C3());
     add_graph<NumberMapper>(g, add, g.order());
-    testEcd(g, 3);
+    test_ecd(g, 3);
 
     g = empty_graph(1);
     addE(g, Location(0, 0));
-    testEcd(g, -1);
+    test_ecd(g, -1);
 
     g = circuit(4);
     addE(g, Location(0, 0));
-    testEcd(g, -1);
+    test_ecd(g, -1);
 
     g = complete_graph(3);
-    testEcd(g, -1);
+    test_ecd(g, -1);
 
     g = complete_graph(4);
-    testEcd(g, -1);
+    test_ecd(g, -1);
 
     g = circuit(5);
-    testEcd(g, -1);
+    test_ecd(g, -1);
 
     g = path(4);
-    testEcd(g, -1);
+    test_ecd(g, -1);
 
     // https://doi.org/10.1016/j.disc.2013.04.027
     auto create_macajova_mazak = [](int size)
     {
         Graph g(empty_graph(1));
 
-        for (int i = 0; i < size; ++i)
+        for(int i = 0; i < size; ++i)
         {
             Graph add(complete_graph(4));
             add_graph<NumberMapper>(g, add, g.order());
@@ -183,7 +197,7 @@ int main()
 
         assert(min_deg(g) == 4 && max_deg(g) == 4);
         assert(vertex_connectivity(g) == 3);
-        if (size == 1)
+        if(size == 1)
         {
             Graph k_5(complete_graph(5));
             assert(are_isomorphic(g, k_5));
@@ -192,10 +206,10 @@ int main()
         return g;
     };
 
-    for (int i = 1; i <= 3; ++i)
+    for(int i = 1; i <= 3; ++i)
     {
         g = create_macajova_mazak(i);
-        testEcd(g, -1);
+        test_ecd(g, -1);
     }
 
     // https://doi.org/10.1016/j.disc.2011.12.007
@@ -203,23 +217,23 @@ int main()
     {
         Graph g(empty_graph(9));
 
-        for (int i = 0; i < 5; ++i)
+        for(int i = 0; i < 5; ++i)
         {
-            for (int j = i + 1; j < 5; ++j)
+            for(int j = i + 1; j < 5; ++j)
             {
                 addE(g, Location(i, j));
             }
         }
 
-        for (int i = 4; i < 9; ++i)
+        for(int i = 4; i < 9; ++i)
         {
-            for (int j = i + 1; j < 9; ++j)
+            for(int j = i + 1; j < 9; ++j)
             {
                 addE(g, Location(i, j));
             }
         }
 
-        for (int i = 2; i <= 3; ++i)
+        for(int i = 2; i <= 3; ++i)
         {
             int v = i + 3;
 
@@ -235,34 +249,34 @@ int main()
         return g;
     };
     g = create_markstrom();
-    testEcd(g, -1);
+    test_ecd(g, -1);
 
-    const std::string path = "../../resources/graphs/4regular/";
+    // 4 regular graphs with chromatic index 4 have ecd = 2
+    for(int i = 6; i <= 10; i += 2)
+    {
+        std::string file = std::string("graphs/4regular/chromatic_index_4/") + (i < 10 ? "0" : "") + std::to_string(i) + "_4_3_chi4.g6";
 
-    //    // 4 regular graphs with chromatic index 4 have ecd = 2
-    //    for (int o = 6; o <= 12; o += 2) {
-    //        std::string file = path + "chromatic_index_4/" + (o < 10 ? "0" : "") +
-    //            std::to_string(o) + "_4_3_chi4.g6";
-    //
-    //        Factory f;
-    //        auto graphs = read_graph6_file(file, f, 0, 10).graphs();
-    //
-    //        for (auto &G : graphs) {
-    //            testEcd(G, 2);
-    //        }
-    //    }
-    //
-    //    // line graphs of cubic graphs with chromatic index 3 must have ecd
-    //    // all these graphs have chi = 3 according to invariants/test_colouring
-    //    for (int i = 4; i <= 8; i += 2) {
-    //        std::string filename =
-    //            "../../resources/graphs/" + internal::stored_cubic_path(1, 3, i);
-    //        Factory f;
-    //        auto graphs = read_graph6_file(filename, f, 0, 5).graphs();
-    //        for (auto &G : graphs) {
-    //            Graph lg(line_graph(G, f));
-    //            assert(ecd_size(lg) != -1);
-    //        }
-    //    }
-    //
+        auto graphs = read_graph6_file(file).graphs();
+
+        for(auto &G : graphs)
+        {
+            assert(chromatic_index_basic(G) == 4);
+            test_ecd(G, 2);
+        }
+    }
+
+    // line graphs of cubic graphs with chromatic index 3 must have ecd
+    for(int i = 6; i <= 10; i += 2)
+    {
+        std::string file = std::string("graphs/3regular/chromatic_index_3/") + (i < 10 ? "0" : "") + std::to_string(i) + "_3_3_chi3.g6";
+
+        auto graphs = read_graph6_file(file).graphs();
+
+        for(auto &G : graphs)
+        {
+            assert(chromatic_index_basic(G) == 3);
+            Graph lg = line_graph(G);
+            test_ecd(lg, -1, false);
+        }
+    }
 }
