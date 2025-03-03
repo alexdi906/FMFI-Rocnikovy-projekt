@@ -1,6 +1,5 @@
 #include <impl/basic/include.hpp>
-#include <io/graph6.hpp>
-
+#include "io/graph6.hpp"
 #include "sat/solver_cmsat.hpp"
 #include "ecd.hpp"
 #include "ecd_sat.hpp"

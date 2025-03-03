@@ -32,8 +32,8 @@ void test_ecd(Graph &g, int size, bool test_equal = true)
     }
 
     Factory f;
-    std::vector<Graph> sub_g = ecd_subgraphs(g, f);
-    assert(is_ecd(g, sub_g));
+    std::vector<Graph> subg = ecd_subgraphs(g, f);
+    assert(is_ecd(g, subg));
 
 #endif
 #ifdef SAT
@@ -57,54 +57,54 @@ int main()
     Edge e1 = createE(v1, v2);
     addMultipleV(g, {v1, v2});
     addMultipleE(g, {e1, createE(v1, v2)});
-    std::vector<Graph> sub_g;
+    std::vector<Graph> subg;
 
-    sub_g.emplace_back(createG());
-    addMultipleV(sub_g[0], {v1, v2});
-    addMultipleE(sub_g[0], {e1, createE(v1, v2)});
-    assert(is_ecd(g, sub_g));
+    subg.emplace_back(createG());
+    addMultipleV(subg[0], {v1, v2});
+    addMultipleE(subg[0], {e1, createE(v1, v2)});
+    assert(is_ecd(g, subg));
 
     addMultipleE(g, {createE(v1, v2), createE(v1, v2)});
-    sub_g.emplace_back(createG());
-    addMultipleV(sub_g[1], {v1, v2});
-    addMultipleE(sub_g[1], {e1, createE(v1, v2)});
-    assert(!is_ecd(g, sub_g));  // one edge cannot be used in multiple subgraphs
+    subg.emplace_back(createG());
+    addMultipleV(subg[1], {v1, v2});
+    addMultipleE(subg[1], {e1, createE(v1, v2)});
+    assert(!is_ecd(g, subg));  // one edge cannot be used in multiple subgraphs
 
-    deleteE(sub_g[1], e1);
-    addE(sub_g[1], createE(v1, v2));
-    assert(is_ecd(g, sub_g));
+    deleteE(subg[1], e1);
+    addE(subg[1], createE(v1, v2));
+    assert(is_ecd(g, subg));
 
     Edge e2 = createE(v1, v2);
     Edge e3 = createE(v1, v2);
     addMultipleE(g, {e2, e3});
-    assert(!is_ecd(g, sub_g));
+    assert(!is_ecd(g, subg));
 
-    addMultipleE(sub_g[1], {e2, e3});
-    assert(!is_ecd(g, sub_g));
+    addMultipleE(subg[1], {e2, e3});
+    assert(!is_ecd(g, subg));
 
-    deleteE(sub_g[1], e2);
-    deleteE(sub_g[1], e3);
-    sub_g.emplace_back(createG());
-    addMultipleV(sub_g[2], {v1, v2});
-    addMultipleE(sub_g[2], {e2, e3});
-    assert(is_ecd(g, sub_g));
+    deleteE(subg[1], e2);
+    deleteE(subg[1], e3);
+    subg.emplace_back(createG());
+    addMultipleV(subg[2], {v1, v2});
+    addMultipleE(subg[2], {e2, e3});
+    assert(is_ecd(g, subg));
 
     deleteE(g, e2);
     deleteE(g, e3);
-    assert(!is_ecd(g, sub_g));
+    assert(!is_ecd(g, subg));
 
     g = circuit(2);
-    sub_g.clear();
-    sub_g.emplace_back(circuit(4));
-    assert(!is_ecd(g, sub_g));
+    subg.clear();
+    subg.emplace_back(circuit(4));
+    assert(!is_ecd(g, subg));
 
     g = circuit(3);
-    sub_g[0] = circuit(3);
-    assert(!is_ecd(g, sub_g));
+    subg[0] = circuit(3);
+    assert(!is_ecd(g, subg));
 
     g = circuit(1);
-    sub_g[0] = circuit(1);
-    assert(!is_ecd(g, sub_g));
+    subg[0] = circuit(1);
+    assert(!is_ecd(g, subg));
 
     g = empty_graph(0);
     test_ecd(g, 0);
@@ -142,7 +142,7 @@ int main()
     }
     test_ecd(g, 2);
 
-    auto make_g_2C3 = []()
+    auto make_g2C3 = []()
     {
         Graph g_2C3(empty_graph(3));
         for(int i = 0; i < 3; ++i)
@@ -152,9 +152,9 @@ int main()
 
         return g_2C3;
     };
-    g = make_g_2C3();
+    g = make_g2C3();
     test_ecd(g, 3);
-    Graph add(make_g_2C3());
+    Graph add(make_g2C3());
     add_graph<NumberMapper>(g, add, g.order());
     test_ecd(g, 3);
 

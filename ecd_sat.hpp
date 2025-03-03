@@ -1,9 +1,6 @@
 #ifndef BA_GRAPH_SAT_CNF_ECD_HPP
 #define BA_GRAPH_SAT_CNF_ECD_HPP
 
-#include <map>
-#include <utility>
-#include <vector>
 
 #include "impl/basic/include.hpp"
 #include "io/print_nice.hpp"
@@ -11,6 +8,11 @@
 #include "sat/cnf.hpp"
 #include "sat/exec_solver.hpp"
 #include "sat/solver.hpp"
+
+#include <map>
+#include <utility>
+#include <vector>
+#include <climits>
 
 namespace ba_graph
 {
@@ -51,17 +53,23 @@ inline CNF cnf_ecd(const Graph& g, int k)
         Location l = edges[i];
         std::vector<Lit> clause;
 
-        // each edge belongs to at least one color class
-        for(int c = 0; c < 2 * k; ++c)
+        if(i != 0)
         {
-            clause.push_back(Lit(vars[l][c], false));
+            // each edge belongs to at least one color class
+            for(int c = 0; c < 2 * k; ++c)
+            {
+                clause.push_back(Lit(vars[l][c], false));
+            }
+        }
+        else
+        {
+            // first edge belongs to first color class and even position
+            if(k != 0)
+            {
+                clause.push_back(Lit(vars[l][0], false));
+            }
         }
         cnf.push_back(clause);
-
-        if(i == 0 && k != 0)
-        {
-            cnf.push_back({Lit(vars[l][0], false)});
-        }
 
         // each edge belongs to at most one color class
         for(int c1 = 0; c1 < 2 * k; ++c1)
@@ -115,14 +123,14 @@ inline CNF cnf_ecd(const Graph& g, int k)
             for(int j1 = 0; j1 < (int)edges.size(); ++j1)
             {
                 Location l1 = edges[j1];
-                if(!incident(n, l1))
+                if(!incident(n, l1) || l == l1)
                 {
                     continue;
                 }
                 for(int j2 = j1 + 1; j2 < (int)edges.size(); ++j2)
                 {
                     Location l2 = edges[j2];
-                    if(!incident(n, l2))
+                    if(!incident(n, l2) || l == l2)
                     {
                         continue;
                     }
@@ -135,7 +143,31 @@ inline CNF cnf_ecd(const Graph& g, int k)
                 }
             }
         }
+
+
+        // symmetry breaking - if I am in color class c there is a smaller edge in color class c-1
+        for(int c = 2; c < 2 * k; ++c)
+        {
+            clause = {Lit(vars[l][c], true)};
+
+            for(int j = 0; j < i; ++j)
+            {
+                clause.push_back(Lit(vars[edges[j]][(c/2-1)*2], false));
+            }
+            cnf.push_back(clause);
+        }
+        // if I am at an odd position there must be an edge on even position
+        for(int c = 1; c < 2 * k; c+=2)
+        {
+            clause = {Lit(vars[l][c], true)};
+            for(int j = 0; j < i; ++j)
+            {
+                clause.push_back(Lit(vars[edges[j]][(c - 1)], false));
+            }
+            cnf.push_back(clause);
+        }
     }
+
 
     return {edges.size() * 2 * k, cnf};
 }
@@ -149,13 +181,58 @@ inline bool has_ecd_size_sat(const SatSolver& solver, const Graph& g, int k)
 
 inline int ecd_size_sat(const SatSolver& solver, const Graph& g)
 {
-    for(int k = 0; k <= g.size() / 2; ++k)
+    int div_constant = 4;
+    for(auto l1 : g.list(RP::all(), IP::primary(), IT::l()))
     {
-        if(has_ecd_size_sat(solver, g, k))
+        for(auto&i : g[l1.n1()])
         {
-            return k;
+
         }
     }
+
+    int l = -1; int r = g.size()/div_constant;
+
+    while(r - l > 1)
+    {
+        int m = (l + r) / 2;
+        if(has_ecd_size_sat(solver, g, m))
+        {
+            r = m;
+        }
+        else
+        {
+            l = m;
+        }
+    }
+
+    if(has_ecd_size_sat(solver, g, r))
+    {
+        return r;
+    }
+    return -1;
+
+    // bool has_ecd = false;
+    // for(int k = g.size()/4; k>=0; --k)
+    // {
+    //     if(has_ecd_size_sat(solver, g, k))
+    //     {
+    //         has_ecd = true;
+    //     }
+    //     else
+    //     {
+    //         return has_ecd?k+1:-1;
+    //     }
+    // }
+    //
+    // return 0;
+
+    // for(int k = 0; k <= g.size() / 4; ++k)
+    // {
+    //     if(has_ecd_size_sat(solver, g, k))
+    //     {
+    //         return k;
+    //     }
+    // }
 
     return -1;
 }
