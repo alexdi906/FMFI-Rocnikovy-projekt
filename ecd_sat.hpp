@@ -89,6 +89,10 @@ inline CNF cnf_ecd(const Graph& g, int k)
             for(auto&I : g[n])
             {
                 Location l2 = I.is_primary()?I.l():I.jump().l();
+                if(l2 == l || vars[l][0] > vars[l2][0])
+                {
+                    continue;
+                }
                 for(int c = 0; c < 2 * k; ++c)
                 {
                     cnf.push_back({Lit(vars[l][c], true), Lit(vars[l2][c], true)});
