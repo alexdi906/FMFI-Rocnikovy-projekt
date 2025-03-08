@@ -17,15 +17,6 @@ namespace ba_graph
 {
 namespace internal
 {
-inline bool adjacent(Location a, Location b)
-{
-    return a.n1() == b.n1() || a.n1() == b.n2() || a.n2() == b.n1() || a.n2() == b.n2();
-}
-
-inline bool incident(Number n, Location l)
-{
-    return adjacent(Location(n, n), l);
-}
 
 inline CNF cnf_ecd(const Graph& g, int k)
 {

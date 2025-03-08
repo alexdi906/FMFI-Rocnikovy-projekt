@@ -25,5 +25,5 @@ def run(files, line_graph, run_directory = True):
 
 
 # run("graphs/4regular/chromatic_index_4", "false")
-run("graphs/3regular/chromatic_index_3", "true")
-# run(["../no_ECD/17_4_3.clawfree.g6.C_NO"], "false", False)
+# run("graphs/3regular/chromatic_index_3", "true")
+run(["../no_ECD/17_4_3.clawfree.g6.C_NO"], "false", False)

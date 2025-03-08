@@ -1,12 +1,15 @@
 CFLAGS = -std=c++20 -I../ba-graph/include
 DBGFLAGS = -g -O0 -pedantic -Wall -Wextra -DBA_GRAPH_DEBUG
+COMPILE = $(CXX) $(CFLAGS) -O3
 COMPILE_DBG = $(CXX) $(CFLAGS) $(DBGFLAGS)
 
 TEST_VERSION ?= SAT
 
-all: test
+all: main
 
 main: main.cpp
+	$(COMPILE) main.cpp -o main.out -DCOMPILE_WITH_CRYPTOMINISAT -lcryptominisat5
+main_dbg: main.cpp
 	$(COMPILE_DBG) main.cpp -o main.out -DCOMPILE_WITH_CRYPTOMINISAT -lcryptominisat5
 
 test_backtr:
