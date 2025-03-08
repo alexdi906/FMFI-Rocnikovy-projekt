@@ -4,7 +4,7 @@ COMPILE_DBG = $(CXX) $(CFLAGS) $(DBGFLAGS)
 
 TEST_VERSION ?= SAT
 
-all: main
+all: test
 
 main: main.cpp
 	$(COMPILE_DBG) main.cpp -o main.out -DCOMPILE_WITH_CRYPTOMINISAT -lcryptominisat5
