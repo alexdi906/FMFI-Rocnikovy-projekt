@@ -21,7 +21,7 @@ test: test_ecd.cpp
 	$(COMPILE_DBG) test_ecd.cpp -o test_ecd.out -D$(TEST_VERSION) -DCOMPILE_WITH_CRYPTOMINISAT -lcryptominisat5
 
 test_time: test_time.cpp
-	$(COMPILE_DBG) test_time.cpp -o test_time.out -D$(TEST_VERSION) -DCOMPILE_WITH_CRYPTOMINISAT -lcryptominisat5
+	$(COMPILE) test_time.cpp -o test_time.out -DCOMPILE_WITH_CRYPTOMINISAT -lcryptominisat5
 
 clean:
 	rm -rf *.out

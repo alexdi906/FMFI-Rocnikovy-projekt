@@ -23,7 +23,7 @@ def run(files, line_graph, run_directory = True):
         print(algo + " " + str(round(end_time - start_time, 3)))
 
 
-# run(["graphs/4regular/13_4_3.g6"],"false", False)
+run(["graphs/4regular/13_4_3.g6"],"false", False)
 # run("graphs/4regular/chromatic_index_4", "false")
 # files = []
 # for i in range(5, 13):
@@ -31,7 +31,7 @@ def run(files, line_graph, run_directory = True):
 # print(files)
 # run(files, "false", False)
 # run("graphs/3regular/chromatic_index_3", "true")
-run(["../no_ECD/17_4_3.clawfree.g6.C_NO"], "false", False)
+# run(["../no_ECD/17_4_3.clawfree.g6.C_NO"], "false", False)
 # run(["../no_ECD/13_4_3.3c.g6.C_NO"], "false",False)
 # run(["../no_ECD/16_4_3.clawfree.g6.C_NO", "../no_ECD/15_4_3.clawfree.g6.C_NO", "../no_ECD/14_4_3.clawfree.g6.C_NO","../no_ECD/13_4_3.clawfree.g6.C_NO" ], "false", False)
-# run(["graphs/3regular/14_3_3.g6"], "true", False)
+# run(["graphs/3regular/12_3_3.g6"], "true", False)
