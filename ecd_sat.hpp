@@ -1,14 +1,12 @@
 #ifndef BA_GRAPH_SAT_CNF_ECD_HPP
 #define BA_GRAPH_SAT_CNF_ECD_HPP
 
-#include <climits>
 #include <map>
 #include <utility>
 #include <vector>
 
 #include "impl/basic/include.hpp"
 #include "io/print_nice.hpp"
-#include "operations/line_graph.hpp"
 #include "sat/cnf.hpp"
 #include "sat/exec_solver.hpp"
 #include "sat/solver.hpp"
@@ -24,8 +22,25 @@ inline CNF cnf_ecd(const Graph& g, int k)
     {
         return g.size() ? cnf_unsatisfiable : cnf_satisfiable;
     }
-    // vars[e][c] means edge e belongs to the c/2-th color class on a position of c&1 parity
+    if(g.size() == 0)
+    {
+        return cnf_satisfiable;
+    }
+
     auto edges = g.list(RP::all(), IP::primary(), IT::l());
+    Number n1 = edges[0].n1();
+    // edges with the lowest index will be around n1
+    for(auto& I : g[n1])
+    {
+        Location l = I.is_primary() ? I.l() : I.jump().l();
+        auto it = std::find(edges.begin(), edges.end(), l);
+        assert(it != edges.end());
+        edges.erase(it);
+        edges.insert(edges.begin(), l);
+    }
+    assert(edges.size() == g.size());
+
+    // vars[e][c] means edge e belongs to the c/2-th color class on a position of c&1 parity
     std::map<Location, std::vector<int>> vars;
 
     std::vector<std::vector<Lit>> cnf;
@@ -42,26 +57,49 @@ inline CNF cnf_ecd(const Graph& g, int k)
         vars[l] = v;
     }
 
+    // set around first vertex in 4 regular graphs
+    if(max_deg(g) == 4 && min_deg(g) == 4)
+    {
+        std::vector<Location> n1_inc = {edges[0], edges[1], edges[2], edges[3]};
+
+        assert(k >= 2);
+
+        // first edge is 0
+        cnf.push_back({Lit(vars[n1_inc[0]][0], false)});
+
+        // if this edge is 1, then the neighbors will 2 and 3 in fixed order
+        for(int i = 1; i < 4; ++i)
+        {
+            Location l1 = n1_inc[i];
+
+            std::vector<Location> oth;
+            for(int j = 1; j < 4; ++j)
+            {
+                if(i != j)
+                {
+                    oth.push_back(n1_inc[j]);
+                }
+            }
+            assert(oth.size() == 2);
+
+            Location l2 = oth[0];
+            Location l3 = oth[1];
+
+            // if l1=1, l2=2 and l3=3
+            cnf.push_back({Lit(vars[l1][1], true), Lit(vars[l2][2], false)});
+            cnf.push_back({Lit(vars[l1][1], true), Lit(vars[l3][3], false)});
+        }
+    }
+
     for(int i = 0; i < (int)edges.size(); ++i)
     {
         Location l = edges[i];
         std::vector<Lit> clause;
 
-        if(i != 0)
+        // each edge belongs to at least one color class
+        for(int c = 0; c < 2 * k; ++c)
         {
-            // each edge belongs to at least one color class
-            for(int c = 0; c < 2 * k; ++c)
-            {
-                clause.push_back(Lit(vars[l][c], false));
-            }
-        }
-        else
-        {
-            // first edge belongs to first color class and even position
-            if(k != 0)
-            {
-                clause.push_back(Lit(vars[l][0], false));
-            }
+            clause.push_back(Lit(vars[l][c], false));
         }
         cnf.push_back(clause);
 
@@ -77,9 +115,9 @@ inline CNF cnf_ecd(const Graph& g, int k)
         // adjacent edges cannot belong to the same color class and parity
         for(auto& n : {l.n1(), l.n2()})
         {
-            for(auto&I : g[n])
+            for(auto& I : g[n])
             {
-                Location l2 = I.is_primary()?I.l():I.jump().l();
+                Location l2 = I.is_primary() ? I.l() : I.jump().l();
                 if(l2 == l || vars[l][0] > vars[l2][0])
                 {
                     continue;
@@ -91,21 +129,6 @@ inline CNF cnf_ecd(const Graph& g, int k)
             }
         }
 
-        // // adjacent edges cannot belong to the same color class and parity
-        // for(int j = i + 1; j < (int)edges.size(); ++j)
-        // {
-        //     Location l2 = edges[j];
-        //
-        //     if(!adjacent(l, l2))
-        //     {
-        //         continue;
-        //     }
-        //     for(int c = 0; c < 2 * k; ++c)
-        //     {
-        //         cnf.push_back({Lit(vars[l][c], true), Lit(vars[l2][c], true)});
-        //     }
-        // }
-
         // each endpoint has to be incident to at least one edge in the same color class and opposite parity
         for(auto& n : {l.n1(), l.n2()})
         {
@@ -114,9 +137,9 @@ inline CNF cnf_ecd(const Graph& g, int k)
                 clause = {Lit(vars[l][c], true)};
 
                 int c2 = c + (c & 1 ? -1 : 1);
-                for(auto&I : g[n])
+                for(auto& I : g[n])
                 {
-                    Location l2 = I.is_primary()?I.l():I.jump().l();
+                    Location l2 = I.is_primary() ? I.l() : I.jump().l();
                     if(l == l2)
                     {
                         continue;
@@ -187,7 +210,7 @@ inline CNF cnf_ecd(const Graph& g, int k)
             }
             cnf.push_back(clause);
         }
-        // if I am at an odd position there must be an edge on even position
+        // if I am at an odd position there must be a smaller edge on even position
         for(int c = 1; c < 2 * k; c += 2)
         {
             clause = {Lit(vars[l][c], true)};
@@ -211,9 +234,9 @@ inline bool has_ecd_size_sat(const SatSolver& solver, const Graph& g, int k)
 
 inline int ecd_size_sat(const SatSolver& solver, const Graph& g)
 {
+    // search space (l,r]
+    int l = min_deg(g) == 4 && max_deg(g) == 4 ? 1 : -1;
     int div_constant = has_parallel_edge(g) ? 2 : 4;
-
-    int l = -1;
     int r = g.size() / div_constant;
 
     while(r - l > 1)
