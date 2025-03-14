@@ -1,8 +1,9 @@
 #include <impl/basic/include.hpp>
-#include "io/graph6.hpp"
+
 #include "sat/solver_cmsat.hpp"
 #include "ecd.hpp"
 #include "ecd_sat.hpp"
+#include "io/graph6.hpp"
 #include "util/cxxopts.hpp"
 
 // Cycle decomposition, is a partition of E(g) into edge-disjoint cycles.
@@ -59,8 +60,8 @@ int main(int argc, char** argv)
     try
     {
         options.add_options()("h, help", "print help")("i,input-graph-file", "graph file to the ecd of", cxxopts::value<std::string>())(
-            "l,linegraph", "whether to the ecd of the line graph", cxxopts::value<bool>()->default_value("false"))(
-            "a, algorithm-used", "which algorithm to use to find ecd (backtracking/sat)", cxxopts::value<std::string>()->default_value("sat"));
+          "l,linegraph", "whether to the ecd of the line graph", cxxopts::value<bool>()->default_value("false"))(
+          "a, algorithm-used", "which algorithm to use to find ecd (backtracking/sat)", cxxopts::value<std::string>()->default_value("sat"));
 
         options.parse_positional({"i"});
         options.positional_help("<input graph file>");

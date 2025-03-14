@@ -19,7 +19,7 @@ namespace internal
 {
 class Ecd
 {
-   public:
+  public:
     Ecd(const Graph& g) : g(g), lg(line_graph(g)), edge_to_number(line_graph_with_map(g).second)
     {
         std::vector<Number> nums = lg.list(RP::all(), RT::n());
@@ -28,7 +28,7 @@ class Ecd
         has_ecd = false;
         coloring.resize(max_number(lg).to_int() + 1, -1);
 
-        if (g.contains([](const Rotation& r) -> bool { return r.degree() & 1; }) || g.contains(RP::all(), IP::loop()) || (g.size() & 1))
+        if(g.contains([](const Rotation& r) -> bool { return r.degree() & 1; }) || g.contains(RP::all(), IP::loop()) || (g.size() & 1))
         {
             return;
         }
@@ -39,30 +39,30 @@ class Ecd
     // construct each ecd color class based on the minimal ecd size edge coloring
     std::vector<Graph> getEcd(Factory& f = static_factory)
     {
-        if (!has_ecd)
+        if(!has_ecd)
         {
             return {};
         }
 
         std::vector<Graph> subgraphs;
-        for (int i = 0; i < getSize(); ++i)
+        for(int i = 0; i < getSize(); ++i)
         {
             subgraphs.emplace_back(createG(f));
         }
 
-        for (auto& e : g.list(RP::all(), IP::primary(), IT::e()))
+        for(auto& e : g.list(RP::all(), IP::primary(), IT::e()))
         {
-            Graph& sub_g = subgraphs[min_ecd_coloring[edge_to_number[e].to_int()] / 2];
+            Graph& subg = subgraphs[min_ecd_coloring[edge_to_number[e].to_int()] / 2];
 
-            if (!sub_g.contains(RP::v(e.v1())))
+            if(!subg.contains(RP::v(e.v1())))
             {
-                addV(sub_g, e.v1(), g.find(RP::v(e.v1()))->n(), f);
+                addV(subg, e.v1(), g.find(RP::v(e.v1()))->n(), f);
             }
-            if (!sub_g.contains(RP::v(e.v2())))
+            if(!subg.contains(RP::v(e.v2())))
             {
-                addV(sub_g, e.v2(), g.find(RP::v(e.v2()))->n(), f);
+                addV(subg, e.v2(), g.find(RP::v(e.v2()))->n(), f);
             }
-            addE(sub_g, e, f);
+            addE(subg, e, f);
         }
 
         return subgraphs;
@@ -73,7 +73,7 @@ class Ecd
         return !has_ecd ? -1 : min_ecd_size;
     }
 
-   protected:
+  protected:
     const Graph& g;
     const Graph lg;  // for simplicity, we will be assigning vertices of a line graph to cycles
     int min_ecd_size;
@@ -101,40 +101,40 @@ class Ecd
         int oth_col = (col & 1 ? col - 1 : col + 1);
         int cnt_oth_col = 0;
 
-        for (auto& i : lg[cur_vert])
+        for(auto& i : lg[cur_vert])
         {
             Number neigh = i.n2();
 
-            if (coloring[neigh.to_int()] == -1)
+            if(coloring[neigh.to_int()] == -1)
             {
                 continue;
             }
             // in an even cycle both my neighbors have to be of different parity
-            if (coloring[neigh.to_int()] == col)
+            if(coloring[neigh.to_int()] == col)
             {
                 return;
             }
-            if (coloring[neigh.to_int()] == oth_col)
+            if(coloring[neigh.to_int()] == oth_col)
             {
                 cnt_oth_col++;
                 // exactly 2 of my neighbors have to be of different parity
-                if (cnt_oth_col > 2)
+                if(cnt_oth_col > 2)
                 {
                     return;
                 }
             }
         }
         // found a good even cycle
-        if (cnt_oth_col == 2)
+        if(cnt_oth_col == 2)
         {
             startCycle(cur_size);
             return;
         }
 
-        for (auto& i : lg[cur_vert])
+        for(auto& i : lg[cur_vert])
         {
             Number neigh = i.n2();
-            if (coloring[neigh.to_int()] == -1)
+            if(coloring[neigh.to_int()] == -1)
             {
                 assignCol(neigh, oth_col, cur_size);
             }
@@ -143,7 +143,7 @@ class Ecd
 
     void startCycle(int cur_size)
     {
-        if (uncolored.empty())
+        if(uncolored.empty())
         {
             min_ecd_size = cur_size;
             min_ecd_coloring = coloring;
@@ -154,14 +154,14 @@ class Ecd
         Number start_vert = *uncolored.begin();
 
         // try to assign vertex to some existing color class
-        for (int c = 0; c < cur_size; ++c)
+        for(int c = 0; c < cur_size; ++c)
         {
             assignCol(start_vert, 2 * c, cur_size);
         }
 
         // assign to a new color class
         cur_size++;
-        if (cur_size >= min_ecd_size)
+        if(cur_size >= min_ecd_size)
         {
             return;
         }
@@ -194,33 +194,33 @@ inline bool is_ecd(const Graph& g, std::vector<Graph>& subgraphs)
     std::vector<Vertex> vert_set;
     std::vector<Edge> edge_set;
 
-    for (auto& sub_g : subgraphs)
+    for(auto& subg : subgraphs)
     {
-        if (min_deg(sub_g) != 2 || max_deg(sub_g) != 2)
+        if(min_deg(subg) != 2 || max_deg(subg) != 2)
         {
             return false;
         }
-        auto comps = components(sub_g);
+        auto comps = components(subg);
 
-        for (auto& comp : comps)
+        for(auto& comp : comps)
         {
-            if (comp.size() & 1)
+            if(comp.size() & 1)
             {
                 return false;
             }
         }
 
-        std::vector<Vertex> sub_g_vert = sub_g.list(RP::all(), RT::v());
-        std::vector<Edge> sub_g_edg = sub_g.list(RP::all(), IP::primary(), IT::e());
+        std::vector<Vertex> subg_vert = subg.list(RP::all(), RT::v());
+        std::vector<Edge> subg_edg = subg.list(RP::all(), IP::primary(), IT::e());
 
-        vert_set.insert(vert_set.begin(), sub_g_vert.begin(), sub_g_vert.end());
-        edge_set.insert(edge_set.end(), sub_g_edg.begin(), sub_g_edg.end());
+        vert_set.insert(vert_set.begin(), subg_vert.begin(), subg_vert.end());
+        edge_set.insert(edge_set.end(), subg_edg.begin(), subg_edg.end());
     }
 
     std::sort(vert_set.begin(), vert_set.end());
     std::sort(edge_set.begin(), edge_set.end());
 
-    if (std::adjacent_find(edge_set.begin(), edge_set.end()) != edge_set.end())
+    if(std::adjacent_find(edge_set.begin(), edge_set.end()) != edge_set.end())
     {
         return false;
     }

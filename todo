@@ -1,0 +1,3 @@
+probably just make a pre commit script
+make clang format not change order of header files
+stress test on larger files that take longer

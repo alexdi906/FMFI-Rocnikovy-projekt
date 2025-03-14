@@ -1,19 +1,18 @@
 #include <impl/basic/include.hpp>
+#include "sat/solver_cmsat.hpp"
 #include "algorithms/isomorphism/isomorphism.hpp"
+#include "ecd.hpp"
+#include "ecd_sat.hpp"
 #include "graphs.hpp"
+#include "invariants/colouring.hpp"
 #include "invariants/connectivity.hpp"
 #include "io/graph6.hpp"
 #include "io/print_nice.hpp"
 #include "operations/add_graph.hpp"
-#include "invariants/colouring.hpp"
 #include "operations/line_graph.hpp"
-#include "sat/solver_cmsat.hpp"
-#include "ecd.hpp"
-#include "ecd_sat.hpp"
 
 #include <string>
 #include <vector>
-
 
 using namespace ba_graph;
 

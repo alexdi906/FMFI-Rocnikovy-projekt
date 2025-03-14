@@ -1,15 +1,16 @@
 #ifndef BA_GRAPH_SAT_CNF_ECD_HPP
 #define BA_GRAPH_SAT_CNF_ECD_HPP
 
-#include <map>
-#include <utility>
-#include <vector>
-
-#include "impl/basic/include.hpp"
+#include "invariants/girth.hpp"
 #include "io/print_nice.hpp"
 #include "sat/cnf.hpp"
 #include "sat/exec_solver.hpp"
 #include "sat/solver.hpp"
+
+#include <impl/basic/include.hpp>
+#include <map>
+#include <utility>
+#include <vector>
 
 namespace ba_graph
 {
@@ -269,24 +270,24 @@ inline int ecd_size_sat(const SatSolver& solver, const Graph& g)
     int div_constant = has_parallel_edge(g) ? 2 : 4;
     int r = g.size() / div_constant;
 
-    while(r - l > 1)
-    {
-        int m = (l + r) / 2;
-        if(has_ecd_size_sat(solver, g, m))
-        {
-            r = m;
-        }
-        else
-        {
-            l = m;
-        }
-    }
-
-    if(has_ecd_size_sat(solver, g, r))
-    {
-        return r;
-    }
-    return -1;
+    // while(r - l > 1)
+    // {
+    //     int m = (l + r) / 2;
+    //     if(has_ecd_size_sat(solver, g, m))
+    //     {
+    //         r = m;
+    //     }
+    //     else
+    //     {
+    //         l = m;
+    //     }
+    // }
+    //
+    // if(has_ecd_size_sat(solver, g, r))
+    // {
+    //     return r;
+    // }
+    // return -1;
     //
     // bool has_ecd = false;
     // for(int k = r; k>l; --k)
@@ -307,13 +308,13 @@ inline int ecd_size_sat(const SatSolver& solver, const Graph& g)
     // }
     // return 0;
 
-    // for(int k = 0; k <= g.size() / 4; ++k)
-    // {
-    //     if(has_ecd_size_sat(solver, g, k))
-    //     {
-    //         return k;
-    //     }
-    // }
+    for(int k = l + 1; k <= r; ++k)
+    {
+        if(has_ecd_size_sat(solver, g, k))
+        {
+            return k;
+        }
+    }
 
     return -1;
 }
