@@ -1,6 +1,7 @@
 # Created by https://www.toptal.com/developers/gitignore/api/latex,c++,clion+all,visualstudiocode,linux
 # Edit at https://www.toptal.com/developers/gitignore?templates=latex,c++,clion+all,visualstudiocode,linux
 
+*.txt
 ### C++ ###
 # Prerequisites
 *.d
@@ -45,6 +46,7 @@
 .idea/**/usage.statistics.xml
 .idea/**/dictionaries
 .idea/**/shelf
+.idea
 
 # AWS User-specific
 .idea/**/aws.xml
@@ -357,7 +359,7 @@ pythontex-files-*/
 *.hst
 *.ver
 
-# easy-todo
+# easy-todo.txt
 *.lod
 
 # xcolor

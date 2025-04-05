@@ -6,7 +6,7 @@
 #include "sat/cnf.hpp"
 #include "sat/exec_solver.hpp"
 #include "sat/solver.hpp"
-
+#include "preprocess_breakid.hpp"
 #include <impl/basic/include.hpp>
 #include <map>
 #include <utility>
@@ -56,40 +56,6 @@ inline CNF cnf_ecd(const Graph& g, int k)
         }
 
         vars[l] = v;
-    }
-
-    // set around first vertex in 4 regular graphs
-    if(max_deg(g) == 4 && min_deg(g) == 4)
-    {
-        std::vector<Location> n1_inc = {edges[0], edges[1], edges[2], edges[3]};
-
-        assert(k >= 2);
-
-        // first edge is 0
-        cnf.push_back({Lit(vars[n1_inc[0]][0], false)});
-
-        // if this edge is 1, then the neighbors will 2 and 3 in fixed order
-        for(int i = 1; i < 4; ++i)
-        {
-            Location l1 = n1_inc[i];
-
-            std::vector<Location> oth;
-            for(int j = 1; j < 4; ++j)
-            {
-                if(i != j)
-                {
-                    oth.push_back(n1_inc[j]);
-                }
-            }
-            assert(oth.size() == 2);
-
-            Location l2 = oth[0];
-            Location l3 = oth[1];
-
-            // if l1=1, l2=2 and l3=3
-            cnf.push_back({Lit(vars[l1][1], true), Lit(vars[l2][2], false)});
-            cnf.push_back({Lit(vars[l1][1], true), Lit(vars[l3][3], false)});
-        }
     }
 
     // each edge belongs to at least one color class
@@ -162,97 +128,6 @@ inline CNF cnf_ecd(const Graph& g, int k)
         }
     }
 
-    // // each endpoint has to be incident to at most one edge in the same color class and opposite parity
-    // for(auto& l : edges)
-    // {
-    //     for(auto& n : {l.n1(), l.n2()})
-    //     {
-    //         for(auto& i1 : g[n])
-    //         {
-    //             Location l1 = i1.is_primary() ? i1.l() : i1.jump().l();
-    //
-    //             if(l1 == l)
-    //             {
-    //                 continue;
-    //             }
-    //
-    //             for(auto& i2 : g[n])
-    //             {
-    //                 Location l2 = i2.is_primary() ? i2.l() : i2.jump().l();
-    //
-    //                 if(l2 == l || vars[l2][0] <= vars[l1][0])
-    //                 {
-    //                     continue;
-    //                 }
-    //                 for(int c = 0; c < 2 * k; ++c)
-    //                 {
-    //                     int c2 = c + (c & 1 ? -1 : 1);
-    //                     cnf.push_back({Lit(vars[l][c], true), Lit(vars[l1][c2], true), Lit(vars[l2][c2], true)});
-    //                 }
-    //             }
-    //         }
-    //     }
-    // }
-
-    // symmetry breaking :
-
-    // if I am in color class c there is a smaller edge in color class c-1
-    for(int i = 0; i < (int)edges.size(); ++i)
-    {
-        Location l = edges[i];
-        for(int c = 2; c < 2 * k; ++c)
-        {
-            std::vector<Lit> clause = {Lit(vars[l][c], true)};
-
-            for(int j = 0; j < i; ++j)
-            {
-                clause.push_back(Lit(vars[edges[j]][(c / 2 - 1) * 2], false));
-            }
-            cnf.push_back(clause);
-        }
-    }
-
-    // if I am at an odd position there must be a smaller edge on even position
-    for(int i = 0; i < (int)edges.size(); ++i)
-    {
-        Location l = edges[i];
-        for(int c = 1; c < 2 * k; c += 2)
-        {
-            std::vector<Lit> clause = {Lit(vars[l][c], true)};
-            for(int j = 0; j < i; ++j)
-            {
-                clause.push_back(Lit(vars[edges[j]][(c - 1)], false));
-            }
-            cnf.push_back(clause);
-        }
-    }
-
-    // // if I am the smallest edge on odd position, one of my neighbors must be on even position and smaller
-    // for(int i = 0; i < (int)edges.size(); ++i)
-    // {
-    //     Location l = edges[i];
-    //     for(int c = 1; c < 2 * k; c += 2)
-    //     {
-    //         std::vector<Lit> clause = {Lit(vars[l][c], true)};
-    //         for(int j = 0; j < i; ++j)
-    //         {
-    //             clause.push_back(Lit(vars[edges[j]][c], false));
-    //         }
-    //         for(auto& n : {l.n1(), l.n2()})
-    //         {
-    //             for(auto& I : g[n])
-    //             {
-    //                 Location l2 = I.is_primary() ? I.l() : I.jump().l();
-    //                 if(vars[l][c] > vars[l2][c])
-    //                 {
-    //                     clause.push_back(Lit(vars[l2][c - 1], false));
-    //                 }
-    //             }
-    //         }
-    //         cnf.push_back(clause);
-    //     }
-    // }
-
     return {edges.size() * 2 * k, cnf};
 }
 }  // namespace internal
@@ -260,6 +135,7 @@ inline CNF cnf_ecd(const Graph& g, int k)
 inline bool has_ecd_size_sat(const SatSolver& solver, const Graph& g, int k)
 {
     CNF cnf = internal::cnf_ecd(g, k);
+    cnf = preprocess_breakid(cnf);
     return satisfiable(solver, cnf);
 }
 
@@ -270,25 +146,25 @@ inline int ecd_size_sat(const SatSolver& solver, const Graph& g)
     int div_constant = has_parallel_edge(g) ? 2 : 4;
     int r = g.size() / div_constant;
 
-    // while(r - l > 1)
-    // {
-    //     int m = (l + r) / 2;
-    //     if(has_ecd_size_sat(solver, g, m))
-    //     {
-    //         r = m;
-    //     }
-    //     else
-    //     {
-    //         l = m;
-    //     }
-    // }
-    //
-    // if(has_ecd_size_sat(solver, g, r))
-    // {
-    //     return r;
-    // }
-    // return -1;
-    //
+    while(r - l > 1)
+    {
+        int m = (l + r) / 2;
+        if(has_ecd_size_sat(solver, g, m))
+        {
+            r = m;
+        }
+        else
+        {
+            l = m;
+        }
+    }
+
+    if(has_ecd_size_sat(solver, g, r))
+    {
+        return r;
+    }
+    return -1;
+
     // bool has_ecd = false;
     // for(int k = r; k>l; --k)
     // {
@@ -308,15 +184,15 @@ inline int ecd_size_sat(const SatSolver& solver, const Graph& g)
     // }
     // return 0;
 
-    for(int k = l + 1; k <= r; ++k)
-    {
-        if(has_ecd_size_sat(solver, g, k))
-        {
-            return k;
-        }
-    }
-
-    return -1;
+    // for(int k = l + 1; k <= r; ++k)
+    // {
+    //     if(has_ecd_size_sat(solver, g, k))
+    //     {
+    //         return k;
+    //     }
+    // }
+    //
+    // return -1;
 }
 }  // namespace ba_graph
 #endif  // BA_GRAPH_SAT_CNF_ECD_HPP

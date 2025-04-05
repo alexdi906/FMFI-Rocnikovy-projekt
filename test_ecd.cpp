@@ -10,6 +10,7 @@
 #include "io/print_nice.hpp"
 #include "operations/add_graph.hpp"
 #include "operations/line_graph.hpp"
+#include "graphs/snarks.hpp"
 
 #include <string>
 #include <vector>
@@ -18,7 +19,7 @@ using namespace ba_graph;
 
 CMSatSolver solver;
 
-void test_ecd(Graph &g, int size, bool test_equal = true)
+void test_ecd(const Graph &g, int size, bool test_equal = true)
 {
 #ifdef BACKTR
     if(equal)
@@ -264,6 +265,9 @@ int main()
         }
     }
 
+    Graph lg = line_graph(create_petersen());
+    // 2 connected graphs with oddness = 2 must have ecd
+    test_ecd(lg, -1, false);
     // line graphs of cubic graphs with chromatic index 3 must have ecd
     for(int i = 6; i <= 10; i += 2)
     {
@@ -274,7 +278,7 @@ int main()
         for(auto &G : graphs)
         {
             assert(chromatic_index_basic(G) == 3);
-            Graph lg = line_graph(G);
+            lg = line_graph(G);
             test_ecd(lg, -1, false);
         }
     }
