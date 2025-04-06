@@ -43,7 +43,7 @@ int main()
     // brk_file.close();
     auto start = high_resolution_clock::now();
 
-    auto graphs = read_graph6_file("graphs/4regular/13_4_3.g6", static_factory, 0, 500).graphs();
+    auto graphs = read_graph6_file("graphs/4regular/14_4_3.g6", static_factory, 5000, 5500).graphs();
     int cnt_chr = 0;
     int cnt_ecd = 0;
     for(auto& g : graphs)
@@ -52,14 +52,14 @@ int main()
         {
             cnt_chr++;
         }
-        if(ecd_size(g) == -1)
-        {
-            cnt_ecd++;
-        }
-        // if(ecd_size_sat(solver,g) == -1)
+        // if(ecd_size(g) == -1)
         // {
         //     cnt_ecd++;
         // }
+        if(ecd_size_sat(solver, g) == -1)
+        {
+            cnt_ecd++;
+        }
     }
     auto stop = high_resolution_clock::now();
     std::cerr << cnt_chr << " " << cnt_ecd << std::endl;
