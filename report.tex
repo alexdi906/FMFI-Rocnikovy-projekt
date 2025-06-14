@@ -26,41 +26,47 @@
 
 \title{RP}
 \begin{center}
-    {\LARGE Report ročníkový projekt zimný semester 2024/2025}\\[1em]
+    {\LARGE Report ročníkový projekt 2024/2025}\\[1em]
     {\large Alex Diko  \\ \texttt{diko3@uniba.sk}}\\[1em]
 \end{center}
+\subsection*{Práca za letný semester:}
+Do knižnice \texttt{ba-graph} som doprogramoval hľadanie ECD
+pomocou SAT solvera. Nech riešime úlohu, kde sa pýtame, či graf $G = (V,E)$ obahuje
+ECD veľkosti $k$.
+\begin{align*}
+\textbf{ Použijeme nasledujúce binárne premenné:}&\\
+\forall e \in E \; \forall c \in \{1,\ldots,k\}\; : \; &col_{e,c} = 1 \Longleftrightarrow
+\text{$e$ patrí do $i$-tej farebnej triedy}\\
+\forall e\in E \;: \;&even_{e} = 1\Longleftrightarrow \text{$e$ je vo svojej 
+farebnej triede na párnej pozícii}\\
+\textbf{SAT solveru dáme nasledujúce klauzuly: }&\\
+\forall e \in E \; : \; &\bigvee_{1\leq i \leq k} col_{e,i}  \textit{ (každá
+hrana patrí do aspoň jednej farebnej triedy)}\\
+\forall e \in E \; \forall c_1 \in \{1,\ldots, k\} \; \forall c_2 \in \{c_1+1,\ldots,k\}\; : \; &
+\lnot col_{e,c1} \lor \lnot col_{e,c2} \\&\textit{ (každá hrana patrí do najviac
+jednej farebnej triedy)}\\
+\shortintertext{Nech $NE(e)$ označuje množinu hrán susedných s hranou $e$ a $NE(v)$ množinu
+hrán susedných s vrcholom $v$}
+\forall e \in E \; \forall e_2 \in NE(e)\; \forall c \in \{1,\ldots,k\} 
+\;: \; &\lnot col_{e,c} \lor \lnot col_{e_2,c}
+\lor \lnot even_{e} \lor \lnot even_{e_2} \text{ a }\\
+&\lnot col_{e,c} \lor \lnot col_{e_2,c} \lor even_{e} \lor even_{e_2} \\&\textit{ (ak sú sususedné hrany
+v rovnakej farebnej triede, } \\&\textit{ musia byť na pozíciach inej parity)}\\
+\forall (v_1,v_2) \in E \; \forall c \in \{1, \ldots, k\} \; \forall 
+u \in {v_1,v_2} \;: \; &\lnot col_{e,c} \lor \bigvee_{e_2 \in NE(u)} 
+col_{e_2, c}\\
+&\textit{(každý vrchol hrany musí byť susedný s aspoň}\\
+&\textit{ jednou hranou v rovnakej farebnej triede)}
+\end{align*}
+Pre CNF v takejto podobe môže existovať veľa symetrických
+riešení. Na rozbitie symetrie som skúšal použit nejaké vlastné podmienky,
+ale nakoniec efektívnejšie bolo použitie knižnice $\texttt{breakid}$.
+Zároveň som vylepšil testy testujúce programy na hľadanie ECD. Ďalej
+som prešiel literatúru a spísal zoznam známych faktov o ECD (dá sa nájsť
+tu: )
 
-\paragraph{Pojmy:}
+\subsection*{Práca za zimný semester:}
 
-\textit{Graf} je dvojica $G = (V,E)$ disjunktných množín $V$ a $E$ spolu so zobrazením
-$f:E \to V \cup \binom{V}{2} $. Prvky $V$ sa nazývajú \textit{vrcholy} grafu $G$ a prvky $E$ jeho \textit{hrany}.
-$f$ priraďuje každej hrane jej \textit{konce} (teda povolujeme multigrafy). Ak je hrane priradený iba jeden vrchol, nazveme ju \textit{slučka}.
-Hranu s koncovými vrcholmi $x,y$ označíme $xy$. Množinu hrán grafu $G$ označujeme ako $E(G)$. Vrchol 
-$v$ je \textit{incidentný} s hranou $e$, ak $v\in f(e)$. \textit{Stupeň vrcholu} je počet
-hrán s ním incidentných, pričom slučka pridáva k stupni vrchola 2. Dve hrany sú \textit{susedné}, ak existuje vrchol, ktorý je 
-s obidvomi incidentný. Ak všetky vrcholy grafu
-majú stupeň $k$, graf sa nazýva \textit{$k$-regulárny}. \textit{Cesta} je neprázdny graf $P = (V,E)$,
-kde $V = \{x_0, x_1, \ldots, x_k\}$ a $E = \{x_0x_1, x_1x_2, \ldots, x_{k-1}x_k\}$,
-pričom všetky $x_i$ sú rôzne. Túto cestu označíme $x_0x_1\ldots x_k$. Ak $P = x_0\ldots x_{k-1}$ je cesta, potom
-graf $C := P + x_{k-1}x_0$ sa nazýva \textit{kružnica}. \textit{Dĺžka} kružnice je počet jej hrán. Graf
-$ G'(V',E')$ je \textit{podgrafom} grafu $G$ ak $V' \subseteq V$ a $E' \subseteq E$.
-\textit{Rozklad} množiny $E(G)$ je množina $R = \{R_1, \ldots, R_k\}$, kde $R_i$
-sú navzájom disjunktné a zjednotenie $\cup R$ všetkých množín $R_i \in R$ sa rovná $E(G)$. \cite{diestel2024graph}
-
-\textit{Kružnicovou dekompozíciou grafu} nazveme rozklad $E(G)$ na kružnice, ktoré nezdieľajú žiadnu
-hranu. Ak každá kružnica tohto rozkladu má párnu dĺžku, nazveme tento rozklad \textit{párnym} (ďalej
-\textit{ECD} z anglického \textit{Even cycle decomposition}).
-Pre ECD grafu zafarbíme každú jeho kružnicu tak, aby kružnice so spoločným
-vrcholom nemali rovnakú farbu. Potom zjednotenie kružníc v každej farebnej triede 
-bude 2-regulárny podgraf pôvodného grafu. Ak najmenší počet farieb potrebných 
-na takéto zafarbenie je $m$ potom ECD rozklad má \textit{veľkosť} $m$. \cite{MALNEGRO2024113844}
-
-\begin{figure}[h]
-    \includegraphics[scale=0.4]{TexResources/2c3ecd}
-    \centering
-    \caption{ECD rozklad veľkosti 3 na červenú, modrú a zelenú kružnicu}
-\end{figure}
-\paragraph{Práca za semester:}
 Do grafovej knižnice \texttt{ba-graph} som v jazyku \texttt{c++} naimplementoval backtracking (prehľadávanie 
 s návratom) algoritmus, ktorý nájde veľkosť ECD grafu (súbor \texttt{ecd.hpp}). Pseudokód algoritmu je uvedený nižšie.
 \begin{algorithmic}[1]
@@ -140,6 +146,35 @@ susedov priradených do nejakej farebnej triedy. Rýchlejší bol však variant,
 na základe poradia, v ktorom sú prehľadávané do šírky BFS algoritmom od prvej hrany, ktorá sa zafarbí.
 Varianty backtrackingu sa dajú pozrieť ako rôzne \texttt{git} vetvy. 
 
-\paragraph{Práca na letný semester:} ECD by sa malo dať nájsť pomocou SAT solvera.
+
+\subsection*{Pojmy:}
+\textit{Graf} je dvojica $G = (V,E)$ disjunktných množín $V$ a $E$ spolu so zobrazením
+$f:E \to V \cup \binom{V}{2} $. Prvky $V$ sa nazývajú \textit{vrcholy} grafu $G$ a prvky $E$ jeho \textit{hrany}.
+$f$ priraďuje každej hrane jej \textit{konce} (teda povolujeme multigrafy). Ak je hrane priradený iba jeden vrchol, nazveme ju \textit{slučka}.
+Hranu s koncovými vrcholmi $x,y$ označíme $xy$. Množinu hrán grafu $G$ označujeme ako $E(G)$. Vrchol 
+$v$ je \textit{incidentný} s hranou $e$, ak $v\in f(e)$. \textit{Stupeň vrcholu} je počet
+hrán s ním incidentných, pričom slučka pridáva k stupni vrchola 2. Dve hrany sú \textit{susedné}, ak existuje vrchol, ktorý je 
+s obidvomi incidentný. Ak všetky vrcholy grafu
+majú stupeň $k$, graf sa nazýva \textit{$k$-regulárny}. \textit{Cesta} je neprázdny graf $P = (V,E)$,
+kde $V = \{x_0, x_1, \ldots, x_k\}$ a $E = \{x_0x_1, x_1x_2, \ldots, x_{k-1}x_k\}$,
+pričom všetky $x_i$ sú rôzne. Túto cestu označíme $x_0x_1\ldots x_k$. Ak $P = x_0\ldots x_{k-1}$ je cesta, potom
+graf $C := P + x_{k-1}x_0$ sa nazýva \textit{kružnica}. \textit{Dĺžka} kružnice je počet jej hrán. Graf
+$ G'(V',E')$ je \textit{podgrafom} grafu $G$ ak $V' \subseteq V$ a $E' \subseteq E$.
+\textit{Rozklad} množiny $E(G)$ je množina $R = \{R_1, \ldots, R_k\}$, kde $R_i$
+sú navzájom disjunktné a zjednotenie $\cup R$ všetkých množín $R_i \in R$ sa rovná $E(G)$. \cite{diestel2024graph}
+
+\textit{Kružnicovou dekompozíciou grafu} nazveme rozklad $E(G)$ na kružnice, ktoré nezdieľajú žiadnu
+hranu. Ak každá kružnica tohto rozkladu má párnu dĺžku, nazveme tento rozklad \textit{párnym} (ďalej
+\textit{ECD} z anglického \textit{Even cycle decomposition}).
+Pre ECD grafu zafarbíme každú jeho kružnicu tak, aby kružnice so spoločným
+vrcholom nemali rovnakú farbu. Potom zjednotenie kružníc v každej farebnej triede 
+bude 2-regulárny podgraf pôvodného grafu. Ak najmenší počet farieb potrebných 
+na takéto zafarbenie je $m$ potom ECD rozklad má \textit{veľkosť} $m$. \cite{MALNEGRO2024113844}
+
+\begin{figure}[h]
+    \includegraphics[scale=0.4]{TexResources/2c3ecd}
+    \centering
+    \caption{ECD rozklad veľkosti 3 na červenú, modrú a zelenú kružnicu}
+\end{figure}
 \printbibliography
 \end{document}

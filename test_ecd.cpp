@@ -19,10 +19,16 @@ using namespace ba_graph;
 
 CMSatSolver solver;
 
-void test_ecd(const Graph &g, int size, bool test_equal = true)
+enum TestType
+{
+    Equal,
+    Nequal,
+    Leq
+};
+void test_ecd(const Graph &g, int size, TestType type = Equal)
 {
 #ifdef BACKTR
-    if(equal)
+    if(test_equality)
     {
         assert(ecd_size(g) == size);
     }
@@ -37,13 +43,17 @@ void test_ecd(const Graph &g, int size, bool test_equal = true)
 
 #endif
 #ifdef SAT
-    if(test_equal)
+    switch(type)
     {
-        assert(ecd_size_sat(solver, g) == size);
-    }
-    else
-    {
-        assert(ecd_size_sat(solver, g) != size);
+        case Equal:
+            assert(ecd_size_sat(solver, g) == size);
+            break;
+        case Nequal:
+            assert(ecd_size_sat(solver, g) != size);
+            break;
+        case Leq:
+            assert(ecd_size_sat(solver, g) <= size);
+            break;
     }
 #endif
 }
@@ -141,6 +151,110 @@ int main()
         addE(g, Location(i, i + 1));
     }
     test_ecd(g, 2);
+
+    auto multiply_edge = [](const Graph &g, Location e, int m)
+    {
+        Graph new_g(createG());
+        add_graph(new_g, g, 0);
+        for(int i = 0; i < m; ++i)
+        {
+            addE(new_g, e);
+        }
+        return new_g;
+    };
+
+    // eulerian bipartite graphs have an ecd
+    for(int i = 2; i <= 4; i += 2)
+    {
+        for(int j = 2; j <= i; j += 2)
+        {
+            g = complete_bipartite_graph(i, j);
+            test_ecd(g, -1, Nequal);
+
+            // multiplying an edge by an even number preserves ecd
+            assert(g.contains(Location(0, i)));
+            test_ecd(multiply_edge(g, Location(0, i), 2), -1, Nequal);
+        }
+    }
+
+    for(int m = 2; m <= 4; m += 2)
+    {
+        // multiplying an edge even number of times in K_5 creates an ecd
+        test_ecd(multiply_edge(complete_graph(5), Location(0, 1), m), -1, Nequal);
+    }
+
+    // testing operations from https://arxiv.org/abs/1209.0160v4
+
+    auto join_graphs = [](const Graph &g, const Graph &h)
+    {
+        Graph join_g(createG());
+        add_graph(join_g, g, 0);
+        auto num_g = join_g.list(RP::all(), RT::n());
+        auto num_h = h.list(RP::all(), RT::n());
+
+        int offset = join_g.order();
+
+        add_disjoint(join_g, h, offset);
+        for(auto n1 : num_g)
+        {
+            for(auto n2 : num_h)
+            {
+                addE(join_g, Location(n1, n2 + offset));
+            }
+        }
+        return join_g;
+    };
+    auto create_co_claw = []()
+    {
+        Graph co_claw(circuit(3));
+        addV(co_claw);
+        return co_claw;
+    };
+    // Let G1 be a simple Eulerian graph (not necessarily connected) with |V(G1)| ≥ 3 and |V(G1)|
+    // odd. Let G2 be a simple anti-Eulerian graph with |V(G2)| ≥ 2. Then the join of G1
+    // and G2 is strongly even-cycle decomposable if and only if G1 != K3 or G2 != K2 .
+    test_ecd(join_graphs(circuit(3), complete_graph(2)), -1, Equal);  // K_5
+    test_ecd(join_graphs(circuit(5), complete_graph(2)), -1, Nequal);
+
+    //     Let G1 and G2 be simple Eulerian graphs (can have more components) with an even number of
+    // vertices. Then the join of G1 and G2 is strongly even-cycle decomposable if and
+    // only if it is not K5 with an edge subdivided.
+    test_ecd(join_graphs(create_co_claw(), empty_graph(2)), -1, Equal);  // K_5 with edge subdivided
+    test_ecd(join_graphs(circuit(4), empty_graph(2)), -1, Nequal);
+    test_ecd(join_graphs(circuit(4), circuit(2)), -1, Nequal);
+    test_ecd(join_graphs(create_co_claw(), create_co_claw()), -1, Nequal);
+
+    auto substitute_graph = [](const Graph &g, const Graph &h)
+    {
+        Graph new_g(createG());
+        add_graph(new_g, g, 0);
+
+        int offset = new_g.order();
+        Number v = max_deg_vertex(new_g);
+        auto neighb = new_g[v].neighbours();
+        deleteV(new_g, v);
+
+        auto num_h = h.list(RP::all(), RT::n());
+        add_disjoint(new_g, h, offset);
+
+        for(auto n1 : neighb)
+        {
+            for(auto n2 : num_h)
+            {
+                addE(new_g, Location(n1, n2 + offset));
+            }
+        }
+        assert(!(new_g.size() & 1));
+        return new_g;
+    };
+
+    //  Let G be a simple strongly even-cycle decomposable graph, let v
+    // be a non-isolated vertex of G, and let H be a simple Eulerian graph with an odd
+    // number of vertices. Then the substitution of v by H in G is strongly even-cycle
+    // decomposable, provided that H is not K_3 or degG(v) ≥ 4.
+    test_ecd(substitute_graph(circuit(3), circuit(3)), -1, Equal);  // K_5
+    test_ecd(substitute_graph(circuit(3), circuit(5)), -1, Nequal);
+    test_ecd(substitute_graph(join_graphs(create_co_claw(), empty_graph(4)), circuit(3)), -1, Nequal);
 
     auto make_g2C3 = []()
     {
@@ -251,24 +365,47 @@ int main()
     g = create_markstrom();
     test_ecd(g, -1);
 
-    // 4 regular graphs with chromatic index 4 have ecd = 2
-    for(int i = 6; i <= 10; i += 2)
+    // 2d-regular graph has an even cycle decomposition of index d if and only if it is class 1.
+    for(int i = 6; i <= 10; ++i)
     {
-        std::string file = std::string("graphs/4regular/chromatic_index_4/") + (i < 10 ? "0" : "") + std::to_string(i) + "_4_3_chi4.g6";
+        std::string file = std::string("graphs/4regular/") + (i < 10 ? "0" : "") + std::to_string(i) + "_4_3.g6";
 
         auto graphs = read_graph6_file(file).graphs();
 
         for(auto &G : graphs)
         {
-            assert(chromatic_index_basic(G) == 4);
-            test_ecd(G, 2);
+            if(chromatic_index_basic(G) == 4)
+            {
+                test_ecd(G, 2);
+            }
+            else
+            {
+                test_ecd(G, 2, Nequal);
+            }
         }
     }
 
-    Graph lg = line_graph(create_petersen());
-    // 2 connected graphs with oddness = 2 must have ecd
-    test_ecd(lg, -1, false);
-    // line graphs of cubic graphs with chromatic index 3 must have ecd
+    for(int i = 7; i <= 8; ++i)
+    {
+        std::string file = std::string("graphs/6regular/") + (i < 10 ? "0" : "") + std::to_string(i) + "_6_3.g6";
+
+        auto graphs = read_graph6_file(file).graphs();
+
+        for(auto &G : graphs)
+        {
+            if(chromatic_index_basic(G) == 6)
+            {
+                test_ecd(G, 3);
+            }
+            else
+            {
+                test_ecd(G, 3, Nequal);
+            }
+        }
+    }
+
+    test_ecd(line_graph(create_petersen()), 3);
+    // line graphs of cubic graphs with chromatic index 3 must have ecd size <=3
     for(int i = 6; i <= 10; i += 2)
     {
         std::string file = std::string("graphs/3regular/chromatic_index_3/") + (i < 10 ? "0" : "") + std::to_string(i) + "_3_3_chi3.g6";
@@ -278,8 +415,14 @@ int main()
         for(auto &G : graphs)
         {
             assert(chromatic_index_basic(G) == 3);
-            lg = line_graph(G);
-            test_ecd(lg, -1, false);
+            if(!(G.size() & 1))
+            {
+                test_ecd(line_graph(G), 2, Equal);
+            }
+            else
+            {
+                test_ecd(line_graph(G), 3, Leq);
+            }
         }
     }
 }
