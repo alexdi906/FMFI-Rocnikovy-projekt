@@ -4,7 +4,7 @@ COMPILE = $(CXX) $(CFLAGS) -O3
 COMPILE_DBG = $(CXX) $(CFLAGS) $(DBG_FLAGS)
 CMSAT_FLAGS = -DCOMPILE_WITH_CRYPTOMINISAT -lcryptominisat5 -lbreakid
 
-TEST_VERSION ?= SAT
+TEST_VERSION ?= BACKTR
 
 all: main
 
@@ -14,9 +14,9 @@ main_dbg: main.cpp
 	$(COMPILE_DBG) main.cpp -o main.out $(CMSAT_FLAGS)
 
 test_backtr:
-	make test VERSION=BACKTR
+	make test TEST_VERSION=BACKTR
 test_sat:
-	make test VERSION=SAT
+	make test TEST_VERSION=SAT
 
 test: test_ecd.cpp
 	$(COMPILE_DBG) test_ecd.cpp -o test_ecd.out -D$(TEST_VERSION) $(CMSAT_FLAGS)

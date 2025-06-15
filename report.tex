@@ -15,6 +15,7 @@
 \usepackage[T1]{fontenc}    
 \usepackage{csquotes}
 \usepackage{biblatex}
+\usepackage[colorlinks=true, linkcolor=blue, citecolor=blue, urlcolor=blue]{hyperref}
 \addbibresource{TexResources/references.bib}
 \geometry{margin=2cm}
 \pagenumbering{gobble}
@@ -53,7 +54,7 @@ hrán susedných s vrcholom $v$}
 &\lnot col_{e,c} \lor \lnot col_{e_2,c} \lor even_{e} \lor even_{e_2} \\&\textit{ (ak sú sususedné hrany
 v rovnakej farebnej triede, } \\&\textit{ musia byť na pozíciach inej parity)}\\
 \forall (v_1,v_2) \in E \; \forall c \in \{1, \ldots, k\} \; \forall 
-u \in {v_1,v_2} \;: \; &\lnot col_{e,c} \lor \bigvee_{e_2 \in NE(u)} 
+u \in \{v_1,v_2\} \;: \; &\lnot col_{(v_1,v_2),c} \lor \bigvee_{e_2 \in (NE(u) - \{(v_1,v_2)\})} 
 col_{e_2, c}\\
 &\textit{(každý vrchol hrany musí byť susedný s aspoň}\\
 &\textit{ jednou hranou v rovnakej farebnej triede)}
@@ -63,7 +64,7 @@ riešení. Na rozbitie symetrie som skúšal použit nejaké vlastné podmienky,
 ale nakoniec efektívnejšie bolo použitie knižnice $\texttt{breakid}$.
 Zároveň som vylepšil testy testujúce programy na hľadanie ECD. Ďalej
 som prešiel literatúru a spísal zoznam známych faktov o ECD (dá sa nájsť
-tu: )
+tu: \url{https://www.overleaf.com/read/hxbcdhzbngcd#fe15ca}).
 
 \subsection*{Práca za zimný semester:}
 
